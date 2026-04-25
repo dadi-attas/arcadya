@@ -276,7 +276,7 @@ function startGame(){
   hi = parseInt(localStorage.getItem(HS_KEY)||'0',10);
   $('score').textContent = score; $('hiscore').textContent = hi;
   placeFood();
-  speed = 140;
+  speed = 200;             /* slower starting pace (ms per tick) */
   running = true;
   scheduleTick();
   draw();
@@ -309,7 +309,7 @@ function tick(){
       SFX.pickup();
       placeFood();
       // slight difficulty ramp
-      if(speed > 70 && score % 40 === 0) speed -= 6;
+      if(speed > 100 && score % 40 === 0) speed -= 5;
     } else {
       snake.pop();
     }
@@ -326,6 +326,17 @@ function draw(){
   ctx2d.lineWidth = 1;
   for(let x=0;x<=COLS;x++){ ctx2d.beginPath(); ctx2d.moveTo(x*cell,0); ctx2d.lineTo(x*cell,H); ctx2d.stroke(); }
   for(let y=0;y<=ROWS;y++){ ctx2d.beginPath(); ctx2d.moveTo(0,y*cell); ctx2d.lineTo(W,y*cell); ctx2d.stroke(); }
+  // Outer glowing border — clearly marks the playing field
+  ctx2d.strokeStyle = '#3dff9a';
+  ctx2d.lineWidth = 3;
+  ctx2d.shadowColor = '#3dff9a';
+  ctx2d.shadowBlur = 10;
+  ctx2d.strokeRect(1.5, 1.5, W-3, H-3);
+  ctx2d.shadowBlur = 0;
+  // Inner subtle border for depth
+  ctx2d.strokeStyle = 'rgba(61,255,154,0.25)';
+  ctx2d.lineWidth = 1;
+  ctx2d.strokeRect(5, 5, W-10, H-10);
   // food
   const fx = food.x*cell+cell/2, fy = food.y*cell+cell/2, fr = cell*0.35;
   const grad = ctx2d.createRadialGradient(fx,fy,1,fx,fy,fr*1.6);
