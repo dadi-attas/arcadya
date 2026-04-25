@@ -5,7 +5,7 @@
  *   - Activate: clean up old cache versions.
  * Bump CACHE_VERSION any time files change to force a refresh. */
 
-const CACHE_VERSION = 'arcadya-v2';
+const CACHE_VERSION = 'arcadya-v3';
 const ASSETS = [
   './',
   './index.html',
