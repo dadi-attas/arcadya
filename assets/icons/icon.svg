@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a0550"/>
+      <stop offset="1" stop-color="#05010f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#b14bff" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#b14bff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="neon" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background with rounded corners (maskable safe-zone) -->
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="96" fill="url(#glow)" opacity="0.7"/>
+
+  <!-- Text "A" stylized as joystick / arcade letter -->
+  <g filter="url(#neon)">
+    <!-- Letter A made of neon strokes -->
+    <path d="M 158 360 L 256 144 L 354 360"
+          stroke="#ff2d95" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"
+          fill="none"/>
+    <path d="M 196 280 L 316 280"
+          stroke="#00e6ff" stroke-width="20" stroke-linecap="round"
+          fill="none"/>
+  </g>
+
+  <!-- 5 colored bars (mimicking the ARCADYA intro) -->
+  <g>
+    <rect x="180" y="400" width="20" height="40" rx="4" fill="#ff2d95"/>
+    <rect x="208" y="408" width="20" height="32" rx="4" fill="#b14bff"/>
+    <rect x="236" y="396" width="20" height="44" rx="4" fill="#00e6ff"/>
+    <rect x="264" y="402" width="20" height="38" rx="4" fill="#ffe94a"/>
+    <rect x="292" y="412" width="20" height="28" rx="4" fill="#3dff9a"/>
+  </g>
+</svg>

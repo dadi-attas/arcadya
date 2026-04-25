@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — TETRIS</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a; --neon-orange:#ff8a3d;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#ff2d95;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(255,45,149,.18),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(0,230,255,.15),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  .hud{position:relative;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-bottom:1px solid rgba(255,255,255,.06);z-index:5;}
+  .hud-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s;flex:0 0 auto;}
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+  .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .label{color:var(--muted);font-size:9px;letter-spacing:2px;}
+  .val{font-size:14px;font-weight:800;color:var(--accent);text-shadow:0 0 6px rgba(255,45,149,.5);}
+  .val.hi{color:var(--neon-yellow);}
+  .val.lv{color:var(--neon-cyan);}
+  .hud-right{display:flex;gap:6px;}
+
+  .play{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04010e;}
+  canvas{display:block;max-width:100%;max-height:100%;}
+
+  .controls{position:relative;border-top:2px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0a0320,#050110);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;min-height:150px;}
+  .dpad{position:relative;width:150px;height:150px;justify-self:start;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);}
+  .dpad button{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .dpad button:active{transform:scale(.9);background:rgba(255,45,149,.28);}
+  .dpad button.disabled{opacity:.3;}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;}
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;}
+  .action{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7bd0,#ff2d95 55%,#7a0e4b 100%);color:#fff;font-weight:900;font-size:14px;letter-spacing:2px;border:none;cursor:pointer;box-shadow:0 0 24px rgba(255,45,149,.55),inset 0 -6px 12px rgba(0,0,0,.3);transition:transform .08s;}
+  .action:active{transform:scale(.92);}
+
+  .overlay{position:absolute;inset:0;background:rgba(5,1,15,.85);display:none;align-items:center;justify-content:center;z-index:20;animation:fadeIn .15s ease-out;}
+  .overlay.active{display:flex;}
+  .overlay-box{width:82%;max-width:320px;text-align:center;background:linear-gradient(180deg,#1a0946,#0c0326);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 20px 20px;box-shadow:0 0 40px rgba(255,45,149,.3);}
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#ff2d95,#b14bff);color:#fff;box-shadow:0 6px 20px rgba(255,45,149,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .pause-label{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;background:rgba(5,1,15,.55);z-index:15;text-shadow:0 0 10px var(--neon-cyan);}
+  .pause-label.active{display:flex;}
+
+  .opener{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);display:flex;align-items:center;justify-content:center;z-index:30;animation:openerFade 4s forwards;}
+  .opener .gm-name{font-size:clamp(44px,13vw,72px);font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-cyan);animation:openerPulse 1s infinite alternate;}
+  @keyframes openerFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+  @keyframes openerPulse{from{transform:scale(.95);}to{transform:scale(1.05);}}
+
+  .gameover-box .big-score{font-size:44px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .note{color:var(--neon-cyan);font-size:13px;letter-spacing:2px;margin-bottom:4px;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">SCORE</div><div id="score" class="val">0</div></div>
+      <div class="score-group"><div class="label">HI</div><div id="hiscore" class="val hi">0</div></div>
+      <div class="score-group"><div class="label">LINES</div><div id="lines" class="val">0</div></div>
+      <div class="score-group"><div class="label">LVL</div><div id="level" class="val lv">1</div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="d-up disabled" data-dir="up">▲</button>
+      <button class="d-right"       data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left"        data-dir="left">◀</button>
+      <button class="d-down"        data-dir="down">▼</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btnAction" class="action">ROTATE</button>
+    </div>
+  </div>
+
+  <div id="opener" class="opener"><div class="gm-name">TETRIS</div></div>
+
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameOver" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">סיום משחק</div>
+      <div id="finalScore" class="big-score">0</div>
+      <div id="goNote" class="note">&nbsp;</div>
+      <div id="hsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="playAgain" class="btn btn-yes">שחק שוב</button>
+        <button id="backHome"  class="btn btn-no">חזרה ל־ARCADYA</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const SFX = ARCADYA.makeSFX({
+  move:     beep => beep(360,0.025,'square',0.05),
+  rotate:   beep => beep(640,0.04,'triangle',0.08),
+  land:     beep => beep(220,0.06,'square',0.08),
+  line:     (beep, n) => { for(let i=0;i<n;i++) setTimeout(()=>beep(440+i*200,0.08,'triangle',0.11), i*60); },
+  tetris:   beep => { beep(660,0.08,'triangle',0.12); setTimeout(()=>beep(990,0.08,'triangle',0.12),80); setTimeout(()=>beep(1320,0.12,'triangle',0.12),160); setTimeout(()=>beep(1760,0.16,'triangle',0.12),260); },
+  levelUp:  beep => { beep(660,0.09,'triangle',0.12); setTimeout(()=>beep(990,0.12,'triangle',0.12),100); },
+  gameover: beep => { beep(220,0.2,'sawtooth',0.14); setTimeout(()=>beep(110,0.3,'sawtooth',0.14),220); }
+});
+
+/* ====== Shell ====== */
+const HS_KEY = 'arcadya_tetris_high_score';
+const $ = id => document.getElementById(id);
+let paused=false, gameOverShown=false, running=false;
+
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(); }, 4000);
+
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+$('playAgain').addEventListener('click', ()=>{ SFX.click(); $('gameOver').classList.remove('active'); gameOverShown = false; startGame(); });
+$('backHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Board & pieces ====== */
+const COLS = 10, ROWS = 20;
+const CELL = 26;
+const BOARD_X = 12, BOARD_Y = 28;
+const PREVIEW_X = 12 + CELL*COLS + 14;
+const PREVIEW_Y = 40;
+const PREVIEW_CELL = 14;
+const DESIGN_W = PREVIEW_X + PREVIEW_CELL*4 + 12;  // room for NEXT on the right
+const DESIGN_H = BOARD_Y + CELL*ROWS + 14;
+
+const PIECES = {
+  I: { color:'#00e6ff', rots:[
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],
+    [[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]]
+  ]},
+  O: { color:'#ffe94a', rots:[
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]]
+  ]},
+  T: { color:'#b14bff', rots:[
+    [[0,1,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,1,0],[0,1,0,0],[0,0,0,0]],
+    [[0,0,0,0],[1,1,1,0],[0,1,0,0],[0,0,0,0]],
+    [[0,1,0,0],[1,1,0,0],[0,1,0,0],[0,0,0,0]]
+  ]},
+  S: { color:'#3dff9a', rots:[
+    [[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,1,0],[0,0,1,0],[0,0,0,0]],
+    [[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,1,0],[0,0,1,0],[0,0,0,0]]
+  ]},
+  Z: { color:'#ff4a6b', rots:[
+    [[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,1,1,0],[0,1,0,0],[0,0,0,0]],
+    [[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,1,1,0],[0,1,0,0],[0,0,0,0]]
+  ]},
+  L: { color:'#ff8a3d', rots:[
+    [[0,0,1,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[0,1,1,0],[0,0,0,0]],
+    [[0,0,0,0],[1,1,1,0],[1,0,0,0],[0,0,0,0]],
+    [[1,1,0,0],[0,1,0,0],[0,1,0,0],[0,0,0,0]]
+  ]},
+  J: { color:'#4a7bff', rots:[
+    [[1,0,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,0,0],[0,1,0,0],[0,0,0,0]],
+    [[0,0,0,0],[1,1,1,0],[0,0,1,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[1,1,0,0],[0,0,0,0]]
+  ]}
+};
+const PIECE_KEYS = Object.keys(PIECES);
+
+/* ====== Canvas ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  const ratio = DESIGN_W / DESIGN_H;
+  let w = pw, h = pw / ratio;
+  if(h > ph){ h = ph; w = ph * ratio; }
+  canvas.width = DESIGN_W; canvas.height = DESIGN_H;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); if(state) draw(); });
+
+/* ====== Game state ====== */
+let state;
+function startGame(){
+  fitCanvas();
+  state = {
+    board: Array.from({length: ROWS}, ()=> Array(COLS).fill(null)),
+    piece: null, nextPiece: null,
+    bag: [],
+    score: 0, lines: 0, level: 1,
+    hi: parseInt(localStorage.getItem(HS_KEY)||'0',10),
+    fallInterval: 800,
+    fallAcc: 0,
+    lockTimer: 0,
+    lockReset: 0,
+    softDrop: false,
+    clearing: null,         // {rows:[...], t:0} during line clear flash
+    input: { left:false, right:false, down:false, dasTimer:0, arrTimer:0, dasDir:0 },
+    lastT: performance.now(),
+    over: false
+  };
+  spawnNext();
+  spawnPiece();
+  updateHud();
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function refillBag(){
+  const arr = PIECE_KEYS.slice();
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  state.bag.push(...arr);
+}
+function nextFromBag(){
+  if(state.bag.length === 0) refillBag();
+  return state.bag.shift();
+}
+function makePiece(key){
+  return { key, rot: 0, x: 3, y: -1 };
+}
+function spawnNext(){
+  state.nextPiece = makePiece(nextFromBag());
+}
+function spawnPiece(){
+  state.piece = state.nextPiece;
+  state.piece.x = 3;
+  state.piece.y = (state.piece.key === 'I') ? 0 : -1;
+  state.piece.rot = 0;
+  spawnNext();
+  state.lockTimer = 0;
+  state.lockReset = 0;
+  // Game over check: if spawn overlaps
+  if(collides(state.piece, state.piece.x, state.piece.y, state.piece.rot)){
+    state.over = true;
+    endGame();
+  }
+}
+
+function pieceShape(p){ return PIECES[p.key].rots[p.rot & 3]; }
+function pieceColor(p){ return PIECES[p.key].color; }
+
+function collides(p, nx, ny, nrot){
+  const shape = PIECES[p.key].rots[nrot & 3];
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      if(!shape[r][c]) continue;
+      const bx = nx + c, by = ny + r;
+      if(bx < 0 || bx >= COLS || by >= ROWS) return true;
+      if(by < 0) continue;
+      if(state.board[by][bx]) return true;
+    }
+  }
+  return false;
+}
+
+function lockPiece(){
+  const p = state.piece;
+  const shape = pieceShape(p);
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      if(!shape[r][c]) continue;
+      const bx = p.x + c, by = p.y + r;
+      if(by >= 0 && by < ROWS && bx >= 0 && bx < COLS){
+        state.board[by][bx] = pieceColor(p);
+      }
+    }
+  }
+  SFX.land();
+  // find full rows
+  const full = [];
+  for(let r=0;r<ROWS;r++){
+    if(state.board[r].every(v => v !== null)) full.push(r);
+  }
+  if(full.length){
+    state.clearing = { rows: full, t: 0 };
+    const lineScore = [0, 100, 300, 500, 800][full.length] || 0;
+    state.score += lineScore * state.level;
+    state.lines += full.length;
+    // level up every 10 lines
+    const newLevel = Math.floor(state.lines/10) + 1;
+    if(newLevel > state.level){
+      state.level = newLevel;
+      state.fallInterval = Math.max(80, 800 * Math.pow(0.85, state.level-1));
+      SFX.levelUp();
+    }
+    if(full.length === 4) SFX.tetris();
+    else SFX.line(full.length);
+  } else {
+    spawnPiece();
+  }
+  updateHud();
+  if(state.score > state.hi){ state.hi = state.score; localStorage.setItem(HS_KEY, state.hi); }
+}
+
+function updateHud(){
+  $('score').textContent = state.score;
+  $('hiscore').textContent = Math.max(state.hi, state.score);
+  $('lines').textContent = state.lines;
+  $('level').textContent = state.level;
+}
+
+/* ====== Movement ====== */
+function tryMove(dx){
+  const p = state.piece;
+  if(!collides(p, p.x+dx, p.y, p.rot)){
+    p.x += dx;
+    // reset lock timer on move (classic lock delay reset)
+    if(onGround()) { state.lockTimer = 0; state.lockReset++; }
+    SFX.move();
+    return true;
+  }
+  return false;
+}
+function softDropStep(){
+  const p = state.piece;
+  if(!collides(p, p.x, p.y+1, p.rot)){
+    p.y++;
+    state.score += 1;
+    updateHud();
+    return true;
+  }
+  return false;
+}
+function rotate(){
+  const p = state.piece;
+  const newRot = (p.rot + 1) & 3;
+  const kicks = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0],[-1,-1],[1,-1]];
+  for(const [dx,dy] of kicks){
+    if(!collides(p, p.x+dx, p.y+dy, newRot)){
+      p.x += dx; p.y += dy; p.rot = newRot;
+      if(onGround()) { state.lockTimer = 0; state.lockReset++; }
+      SFX.rotate();
+      return true;
+    }
+  }
+  return false;
+}
+function onGround(){
+  const p = state.piece;
+  return collides(p, p.x, p.y+1, p.rot);
+}
+
+/* ====== Main loop ====== */
+function loop(now){
+  if(!running) return;
+  const dt = Math.min(48, now - state.lastT);
+  state.lastT = now;
+  if(!paused && !state.over) update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  const s = state;
+
+  // line clearing animation
+  if(s.clearing){
+    s.clearing.t += dt;
+    if(s.clearing.t >= 300){
+      // remove cleared rows
+      const rows = s.clearing.rows.sort((a,b)=>a-b);
+      for(const r of rows){
+        s.board.splice(r, 1);
+        s.board.unshift(Array(COLS).fill(null));
+      }
+      s.clearing = null;
+      spawnPiece();
+    }
+    return;
+  }
+
+  // horizontal input (DAS/ARR)
+  const I = s.input;
+  const dasDir = I.left ? -1 : (I.right ? 1 : 0);
+  if(dasDir !== I.dasDir){
+    I.dasDir = dasDir;
+    if(dasDir !== 0){
+      tryMove(dasDir);
+      I.dasTimer = 180;   // initial DAS before auto-repeat
+      I.arrTimer = 0;
+    } else {
+      I.dasTimer = 0;
+      I.arrTimer = 0;
+    }
+  } else if(dasDir !== 0){
+    I.dasTimer -= dt;
+    if(I.dasTimer <= 0){
+      I.arrTimer -= dt;
+      if(I.arrTimer <= 0){
+        if(tryMove(dasDir)){
+          I.arrTimer = 50;
+        } else {
+          I.arrTimer = 50;
+        }
+      }
+    }
+  }
+
+  // fall logic
+  const interval = s.softDrop ? Math.max(25, s.fallInterval/10) : s.fallInterval;
+  s.fallAcc += dt;
+  while(s.fallAcc >= interval){
+    s.fallAcc -= interval;
+    if(!softDropStepNatural()){
+      break;
+    }
+  }
+
+  // lock delay
+  if(onGround()){
+    s.lockTimer += dt;
+    if(s.lockTimer >= 500 || s.lockReset >= 15){
+      lockPiece();
+    }
+  } else {
+    s.lockTimer = 0;
+    s.lockReset = 0;
+  }
+}
+
+function softDropStepNatural(){
+  const s = state;
+  const p = s.piece;
+  if(!collides(p, p.x, p.y+1, p.rot)){
+    p.y++;
+    if(s.softDrop) { s.score += 1; updateHud(); }
+    return true;
+  }
+  return false;
+}
+
+function endGame(){
+  running = false;
+  SFX.gameover();
+  const prev = parseInt(localStorage.getItem(HS_KEY)||'0',10);
+  if(state.score > prev) localStorage.setItem(HS_KEY, state.score);
+  $('finalScore').textContent = state.score;
+  $('goNote').textContent = 'שורות ' + state.lines + ' · שלב ' + state.level;
+  $('hsNote').innerHTML = (state.score > prev && state.score > 0) ? '🏆 שיא חדש!' : 'שיא: ' + prev;
+  gameOverShown = true;
+  setTimeout(()=>$('gameOver').classList.add('active'), 500);
+}
+
+/* ====== Drawing ====== */
+function draw(){
+  ctx2d.fillStyle = '#04010e';
+  ctx2d.fillRect(0,0,DESIGN_W,DESIGN_H);
+
+  // Board frame
+  ctx2d.strokeStyle = 'rgba(177,75,255,0.3)';
+  ctx2d.lineWidth = 2;
+  ctx2d.strokeRect(BOARD_X-2, BOARD_Y-2, CELL*COLS+4, CELL*ROWS+4);
+
+  // Grid background
+  ctx2d.fillStyle = '#0a0220';
+  ctx2d.fillRect(BOARD_X, BOARD_Y, CELL*COLS, CELL*ROWS);
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx2d.lineWidth = 1;
+  for(let c=1;c<COLS;c++){
+    ctx2d.beginPath();
+    ctx2d.moveTo(BOARD_X + c*CELL, BOARD_Y);
+    ctx2d.lineTo(BOARD_X + c*CELL, BOARD_Y + CELL*ROWS);
+    ctx2d.stroke();
+  }
+  for(let r=1;r<ROWS;r++){
+    ctx2d.beginPath();
+    ctx2d.moveTo(BOARD_X, BOARD_Y + r*CELL);
+    ctx2d.lineTo(BOARD_X + CELL*COLS, BOARD_Y + r*CELL);
+    ctx2d.stroke();
+  }
+
+  // Placed blocks
+  for(let r=0;r<ROWS;r++){
+    const isClearing = state.clearing && state.clearing.rows.includes(r);
+    const flash = isClearing && Math.floor(state.clearing.t/60)%2 === 0;
+    for(let c=0;c<COLS;c++){
+      const color = state.board[r][c];
+      if(color) drawBlock(BOARD_X + c*CELL, BOARD_Y + r*CELL, CELL, flash ? '#ffffff' : color);
+    }
+  }
+
+  // Ghost piece (where it would land)
+  if(state.piece && !state.clearing && !state.over){
+    const p = state.piece;
+    let ghostY = p.y;
+    while(!collides(p, p.x, ghostY+1, p.rot)) ghostY++;
+    if(ghostY > p.y){
+      const shape = pieceShape(p);
+      for(let r=0;r<4;r++){
+        for(let c=0;c<4;c++){
+          if(!shape[r][c]) continue;
+          const bx = p.x + c, by = ghostY + r;
+          if(by < 0 || by >= ROWS || bx < 0 || bx >= COLS) continue;
+          ctx2d.fillStyle = 'rgba(255,255,255,0.08)';
+          ctx2d.strokeStyle = 'rgba(255,255,255,0.25)';
+          ctx2d.lineWidth = 1;
+          ctx2d.fillRect(BOARD_X + bx*CELL+1, BOARD_Y + by*CELL+1, CELL-2, CELL-2);
+          ctx2d.strokeRect(BOARD_X + bx*CELL+1, BOARD_Y + by*CELL+1, CELL-2, CELL-2);
+        }
+      }
+    }
+  }
+
+  // Active piece
+  if(state.piece && !state.clearing){
+    const p = state.piece;
+    const shape = pieceShape(p);
+    const col = pieceColor(p);
+    for(let r=0;r<4;r++){
+      for(let c=0;c<4;c++){
+        if(!shape[r][c]) continue;
+        const bx = p.x + c, by = p.y + r;
+        if(by < 0) continue;
+        drawBlock(BOARD_X + bx*CELL, BOARD_Y + by*CELL, CELL, col);
+      }
+    }
+  }
+
+  // NEXT preview
+  ctx2d.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx2d.font = 'bold 10px "Segoe UI", system-ui, sans-serif';
+  ctx2d.textAlign = 'left';
+  ctx2d.fillText('NEXT', PREVIEW_X, PREVIEW_Y - 8);
+  ctx2d.strokeStyle = 'rgba(0,230,255,0.3)';
+  ctx2d.lineWidth = 1;
+  ctx2d.strokeRect(PREVIEW_X-2, PREVIEW_Y-2, PREVIEW_CELL*4+4, PREVIEW_CELL*4+4);
+  if(state.nextPiece){
+    const p = state.nextPiece;
+    const shape = PIECES[p.key].rots[0];
+    const col = PIECES[p.key].color;
+    for(let r=0;r<4;r++){
+      for(let c=0;c<4;c++){
+        if(!shape[r][c]) continue;
+        drawBlock(PREVIEW_X + c*PREVIEW_CELL, PREVIEW_Y + r*PREVIEW_CELL, PREVIEW_CELL, col);
+      }
+    }
+  }
+}
+
+function drawBlock(x, y, size, color){
+  ctx2d.fillStyle = color;
+  ctx2d.fillRect(x+1, y+1, size-2, size-2);
+  // highlight
+  ctx2d.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx2d.fillRect(x+1, y+1, size-2, Math.max(2, size*0.18));
+  // shadow
+  ctx2d.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx2d.fillRect(x+1, y+size-1-Math.max(2, size*0.18), size-2, Math.max(2, size*0.18));
+}
+
+/* ====== Input ====== */
+function setMove(dir, on){
+  if(!state) return;
+  if(dir === 'left')  state.input.left  = on;
+  if(dir === 'right') state.input.right = on;
+  if(dir === 'down')  { state.softDrop = on; state.input.down = on; }
+}
+
+document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+  const dir = btn.dataset.dir;
+  if(dir === 'up') return; // disabled
+  const down = e => { e.preventDefault(); setMove(dir, true); SFX.click(); };
+  const up   = e => { e.preventDefault(); setMove(dir, false); };
+  btn.addEventListener('touchstart', down, {passive:false});
+  btn.addEventListener('touchend',   up,   {passive:false});
+  btn.addEventListener('touchcancel',up,   {passive:false});
+  btn.addEventListener('mousedown', down);
+  btn.addEventListener('mouseup',   up);
+  btn.addEventListener('mouseleave',up);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+document.addEventListener('keydown', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowLeft')  setMove('left', true);
+  else if(e.key === 'ArrowRight') setMove('right', true);
+  else if(e.key === 'ArrowDown')  setMove('down', true);
+  else if(e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); doRotate(); }
+  else if(e.key === 'p' || e.key === 'P') togglePause();
+});
+document.addEventListener('keyup', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowLeft')  setMove('left', false);
+  if(e.key === 'ArrowRight') setMove('right', false);
+  if(e.key === 'ArrowDown')  setMove('down', false);
+});
+
+// Action button: rotate on press (single 90°). Releasing does nothing extra.
+const actionBtn = $('btnAction');
+function doRotate(){
+  if(!state || !running || paused || state.over || state.clearing) return;
+  rotate();
+}
+function actionPress(e){ if(e) e.preventDefault(); doRotate(); actionBtn.style.filter='brightness(1.2)'; }
+function actionRelease(){ actionBtn.style.filter=''; }
+actionBtn.addEventListener('touchstart', actionPress, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();actionRelease();}, {passive:false});
+actionBtn.addEventListener('mousedown', actionPress);
+actionBtn.addEventListener('mouseup',   actionRelease);
+actionBtn.addEventListener('mouseleave',actionRelease);
+actionBtn.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

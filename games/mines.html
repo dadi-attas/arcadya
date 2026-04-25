@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — MINES</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a; --neon-orange:#ff8a3d;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#ff4a6b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(255,74,107,.18),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(255,138,61,.15),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  .hud{position:relative;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-bottom:1px solid rgba(255,255,255,.06);z-index:5;}
+  .hud-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s;flex:0 0 auto;}
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+  .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .label{color:var(--muted);font-size:9px;letter-spacing:2px;}
+  .val{font-size:14px;font-weight:800;color:var(--accent);text-shadow:0 0 6px rgba(255,74,107,.55);}
+  .val.hi{color:var(--neon-yellow);}
+  .val.lv{color:var(--neon-cyan);}
+  .val.mn{color:var(--neon-orange);}
+  .face{font-size:18px;}
+  .hud-right{display:flex;gap:6px;}
+
+  .play{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04010e;}
+  canvas{display:block;max-width:100%;max-height:100%;}
+
+  .controls{position:relative;border-top:2px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0a0320,#050110);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;min-height:150px;}
+  .dpad{position:relative;width:150px;height:150px;justify-self:start;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);}
+  .dpad button{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .dpad button:active{transform:scale(.9);background:rgba(255,74,107,.3);}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;}
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;position:relative;flex-direction:column;gap:4px;}
+  .action{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#9affc1,#3dff9a 55%,#117c3e 100%);color:#02261a;font-weight:900;font-size:13px;letter-spacing:1px;border:none;cursor:pointer;box-shadow:0 0 24px rgba(61,255,154,.55),inset 0 -6px 12px rgba(0,0,0,.3);transition:transform .08s,background .15s;}
+  .action.flag-mode{background:radial-gradient(circle at 35% 30%,#ff9eb1,#ff4a6b 55%,#7a0e1f 100%);color:#260208;}
+  .action:active{transform:scale(.92);}
+  .hold-ring{position:absolute;inset:-4px;width:104px;height:104px;border-radius:50%;pointer-events:none;}
+  .action-label{position:absolute;font-weight:800;font-size:10px;letter-spacing:1px;color:#fff;text-shadow:0 0 4px #000;pointer-events:none;}
+
+  .overlay{position:absolute;inset:0;background:rgba(5,1,15,.85);display:none;align-items:center;justify-content:center;z-index:20;animation:fadeIn .15s ease-out;}
+  .overlay.active{display:flex;}
+  .overlay-box{width:82%;max-width:320px;text-align:center;background:linear-gradient(180deg,#1a0946,#0c0326);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 20px 20px;box-shadow:0 0 40px rgba(255,74,107,.3);}
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#ff4a6b,#ff8a3d);color:#fff;box-shadow:0 6px 20px rgba(255,74,107,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .pause-label{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;background:rgba(5,1,15,.55);z-index:15;text-shadow:0 0 10px var(--neon-cyan);}
+  .pause-label.active{display:flex;}
+
+  .level-banner{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:24px;font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 14px var(--accent);display:none;z-index:4;pointer-events:none;}
+  .level-banner.show{display:block;animation:banner 1.6s forwards;}
+  @keyframes banner{0%{opacity:0;transform:scale(.7);}20%{opacity:1;transform:scale(1);}80%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.1);}}
+
+  .opener{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);display:flex;align-items:center;justify-content:center;z-index:30;animation:openerFade 4s forwards;}
+  .opener .gm-name{font-size:clamp(44px,13vw,72px);font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-orange);animation:openerPulse 1s infinite alternate;text-align:center;}
+  @keyframes openerFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+  @keyframes openerPulse{from{transform:scale(.95);}to{transform:scale(1.05);}}
+
+  .gameover-box .big-score{font-size:44px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .note{color:var(--neon-cyan);font-size:13px;letter-spacing:2px;margin-bottom:4px;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">SCORE</div><div id="score" class="val">0</div></div>
+      <div class="score-group"><div class="label">HI</div><div id="hiscore" class="val hi">0</div></div>
+      <div class="score-group"><div class="label">MINES</div><div id="mines" class="val mn">0</div></div>
+      <div class="score-group"><div class="label">TIME</div><div id="time" class="val lv">0</div></div>
+      <div class="score-group"><div id="face" class="face">🙂</div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="levelBanner" class="level-banner">LEVEL 1</div>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="d-up"    data-dir="up">▲</button>
+      <button class="d-right" data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left"  data-dir="left">◀</button>
+      <button class="d-down"  data-dir="down">▼</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btnAction" class="action">REVEAL</button>
+      <canvas id="holdRing" class="hold-ring" width="104" height="104"></canvas>
+    </div>
+  </div>
+
+  <div id="opener" class="opener"><div class="gm-name">MINES</div></div>
+
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameOver" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div id="goTitle" class="overlay-title">סיום משחק</div>
+      <div id="finalScore" class="big-score">0</div>
+      <div id="goNote" class="note">&nbsp;</div>
+      <div id="hsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="playAgain" class="btn btn-yes">שחק שוב</button>
+        <button id="backHome"  class="btn btn-no">חזרה ל־ARCADYA</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const SFX = ARCADYA.makeSFX({
+  cursor: beep => beep(440,0.025,'square',0.05),
+  reveal: beep => beep(660,0.04,'triangle',0.08),
+  flood:  beep => { beep(880,0.05,'triangle',0.07); setTimeout(()=>beep(990,0.04,'triangle',0.06),40); },
+  flag:   beep => { beep(560,0.04,'triangle',0.09); setTimeout(()=>beep(720,0.05,'triangle',0.09),40); },
+  boom:   beep => { beep(220,0.4,'sawtooth',0.18); setTimeout(()=>beep(110,0.5,'sawtooth',0.15),200); },
+  win:    beep => { [0,1,2,3].forEach(i => setTimeout(()=>beep(660+i*220,0.1,'triangle',0.13),i*100)); }
+});
+
+/* ====== Shell ====== */
+const HS_KEY = 'arcadya_mines_high_score';
+const $ = id => document.getElementById(id);
+let paused=false, gameOverShown=false, running=false;
+
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(); }, 4000);
+
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+$('playAgain').addEventListener('click', ()=>{ SFX.click(); $('gameOver').classList.remove('active'); gameOverShown = false; startGame(); });
+$('backHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Board ====== */
+const COLS = 9;
+const ROWS = 12;
+const CELL = 34;
+const DESIGN_W = COLS * CELL;
+const DESIGN_H = ROWS * CELL;
+
+const HOLD_FOR_FLAG = 400;     // ms — hold longer than this to flag instead of reveal
+
+/* ====== Canvas ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  const ratio = DESIGN_W / DESIGN_H;
+  let w = pw, h = pw / ratio;
+  if(h > ph){ h = ph; w = ph * ratio; }
+  canvas.width = DESIGN_W; canvas.height = DESIGN_H;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); if(state) draw(); });
+
+/* ====== Game state ====== */
+let state;
+function startGame(){
+  fitCanvas();
+  state = {
+    level: 1,
+    score: 0,
+    hi: parseInt(localStorage.getItem(HS_KEY)||'0',10),
+    grid: null,            // 2D: each {mine, revealed, flagged, num}
+    minesTotal: 12,
+    minesLeft: 12,
+    flagsCorrect: 0,
+    cursor: { c: Math.floor(COLS/2), r: Math.floor(ROWS/2) },
+    firstClick: true,
+    timeMs: 0,
+    status: 'playing',     // playing | won | lost
+    holdStart: 0,
+    holding: false,
+    flagModeShown: false,
+    lastT: performance.now()
+  };
+  buildGrid(state.minesTotal);
+  updateHud();
+  showBanner('LEVEL 1');
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function buildGrid(minesCount){
+  const s = state;
+  s.grid = [];
+  for(let r=0;r<ROWS;r++){
+    const row = [];
+    for(let c=0;c<COLS;c++){
+      row.push({ mine:false, revealed:false, flagged:false, num:0 });
+    }
+    s.grid.push(row);
+  }
+  s.minesTotal = minesCount;
+  s.minesLeft = minesCount;
+  s.flagsCorrect = 0;
+}
+
+function placeMines(avoidC, avoidR){
+  const s = state;
+  // Build "avoid set": clicked cell + 8 neighbors
+  const avoid = new Set();
+  for(let dr=-1; dr<=1; dr++){
+    for(let dc=-1; dc<=1; dc++){
+      avoid.add((avoidR+dr) + ',' + (avoidC+dc));
+    }
+  }
+  let placed = 0;
+  let safety = 1000;
+  while(placed < s.minesTotal && safety-- > 0){
+    const r = Math.floor(Math.random()*ROWS);
+    const c = Math.floor(Math.random()*COLS);
+    if(avoid.has(r+','+c)) continue;
+    if(s.grid[r][c].mine) continue;
+    s.grid[r][c].mine = true;
+    placed++;
+  }
+  // Compute neighbor counts
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(s.grid[r][c].mine) continue;
+      let n = 0;
+      for(let dr=-1; dr<=1; dr++){
+        for(let dc=-1; dc<=1; dc++){
+          if(dr===0 && dc===0) continue;
+          const nr = r+dr, nc = c+dc;
+          if(nr<0||nr>=ROWS||nc<0||nc>=COLS) continue;
+          if(s.grid[nr][nc].mine) n++;
+        }
+      }
+      s.grid[r][c].num = n;
+    }
+  }
+}
+
+function updateHud(){
+  const s = state;
+  $('score').textContent = s.score;
+  $('hiscore').textContent = Math.max(s.hi, s.score);
+  $('mines').textContent = s.minesLeft;
+  $('time').textContent = Math.floor(s.timeMs/1000);
+  let face = '🙂';
+  if(s.status === 'won') face = '😎';
+  else if(s.status === 'lost') face = '😵';
+  else if(s.holding && s.flagModeShown) face = '🚩';
+  $('face').textContent = face;
+}
+
+/* ====== Reveal / flag actions ====== */
+function reveal(c, r){
+  const s = state;
+  if(s.status !== 'playing') return;
+  const cell = s.grid[r][c];
+  if(cell.revealed || cell.flagged) return;
+
+  // First click safety: place mines now, avoiding clicked area
+  if(s.firstClick){
+    placeMines(c, r);
+    s.firstClick = false;
+  }
+
+  if(cell.mine){
+    cell.revealed = true;
+    loseGame();
+    return;
+  }
+
+  // Flood fill if 0
+  if(cell.num === 0){
+    floodFill(c, r);
+    SFX.flood();
+  } else {
+    cell.revealed = true;
+    s.score += 10;
+    SFX.reveal();
+  }
+  updateHud();
+  checkWin();
+}
+
+function floodFill(c, r){
+  const s = state;
+  const queue = [[c, r]];
+  while(queue.length){
+    const [cc, rr] = queue.shift();
+    if(cc<0||cc>=COLS||rr<0||rr>=ROWS) continue;
+    const cell = s.grid[rr][cc];
+    if(cell.revealed || cell.flagged || cell.mine) continue;
+    cell.revealed = true;
+    s.score += 10;
+    if(cell.num === 0){
+      for(let dr=-1; dr<=1; dr++){
+        for(let dc=-1; dc<=1; dc++){
+          if(dr===0 && dc===0) continue;
+          queue.push([cc+dc, rr+dr]);
+        }
+      }
+    }
+  }
+}
+
+function toggleFlag(c, r){
+  const s = state;
+  if(s.status !== 'playing') return;
+  const cell = s.grid[r][c];
+  if(cell.revealed) return;
+  cell.flagged = !cell.flagged;
+  if(cell.flagged){ s.minesLeft--; }
+  else { s.minesLeft++; }
+  SFX.flag();
+  updateHud();
+}
+
+function checkWin(){
+  const s = state;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell = s.grid[r][c];
+      if(!cell.mine && !cell.revealed) return;
+    }
+  }
+  // Won! count correct flags + add time bonus
+  let correctFlags = 0;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const cell = s.grid[r][c];
+      if(cell.mine && cell.flagged) correctFlags++;
+    }
+  }
+  s.flagsCorrect = correctFlags;
+  s.score += correctFlags * 50;
+  // time bonus: faster = more
+  const seconds = Math.floor(s.timeMs/1000);
+  const par = 30 + s.minesTotal*2;   // a "par" time per level
+  const bonus = Math.max(0, (par - seconds)) * 5;
+  s.score += bonus;
+  s.status = 'won';
+  SFX.win();
+  updateHud();
+  // Save high score
+  if(s.score > s.hi){ s.hi = s.score; localStorage.setItem(HS_KEY, s.hi); }
+  // After short pause, advance level
+  setTimeout(()=> nextLevel(), 1800);
+}
+
+function loseGame(){
+  const s = state;
+  s.status = 'lost';
+  // Reveal all mines
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(s.grid[r][c].mine) s.grid[r][c].revealed = true;
+    }
+  }
+  SFX.boom();
+  updateHud();
+  setTimeout(()=> endGame(false), 1600);
+}
+
+function nextLevel(){
+  const s = state;
+  s.level++;
+  // Difficulty: mines grow gradually
+  const newMines = Math.min(28, 12 + (s.level-1)*3);
+  s.timeMs = 0;
+  s.firstClick = true;
+  s.cursor = { c: Math.floor(COLS/2), r: Math.floor(ROWS/2) };
+  s.status = 'playing';
+  buildGrid(newMines);
+  updateHud();
+  showBanner('LEVEL ' + s.level);
+}
+
+function endGame(won){
+  running = false;
+  const s = state;
+  $('goTitle').textContent = won ? 'ניקית!' : 'פוצצת!';
+  $('finalScore').textContent = s.score;
+  $('goNote').textContent = 'שלב ' + s.level + ' · ' + Math.floor(s.timeMs/1000) + ' שנ׳';
+  const prev = parseInt(localStorage.getItem(HS_KEY)||'0',10);
+  $('hsNote').innerHTML = (s.score > prev && s.score > 0) ? '🏆 שיא חדש!' : 'שיא: ' + prev;
+  gameOverShown = true;
+  setTimeout(()=>$('gameOver').classList.add('active'), 400);
+}
+
+function showBanner(text){
+  const el = $('levelBanner');
+  el.textContent = text;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 1600);
+}
+
+/* ====== Main loop ====== */
+function loop(now){
+  if(!running) return;
+  const dt = Math.min(48, now - state.lastT);
+  state.lastT = now;
+  if(!paused && state.status === 'playing'){
+    state.timeMs += dt;
+  }
+  // Update flag-mode indicator while holding
+  if(state.holding){
+    const elapsed = performance.now() - state.holdStart;
+    const wasFlag = state.flagModeShown;
+    state.flagModeShown = elapsed >= HOLD_FOR_FLAG;
+    if(state.flagModeShown && !wasFlag){
+      $('btnAction').classList.add('flag-mode');
+      $('btnAction').textContent = 'FLAG';
+      updateHud();
+      SFX.cursor();
+    }
+  }
+  updateHud();
+  draw();
+  drawHoldRing();
+  requestAnimationFrame(loop);
+}
+
+/* ====== Drawing ====== */
+function draw(){
+  const W = DESIGN_W, H = DESIGN_H;
+  ctx2d.fillStyle = '#04010e';
+  ctx2d.fillRect(0,0,W,H);
+
+  // Cells
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      drawCell(c, r);
+    }
+  }
+
+  // Cursor highlight
+  if(state.status === 'playing'){
+    const cx = state.cursor.c * CELL, cy = state.cursor.r * CELL;
+    const t = (Math.sin(performance.now()/200) + 1) / 2;
+    ctx2d.strokeStyle = 'rgba(255,233,74,' + (0.6 + t*0.4) + ')';
+    ctx2d.lineWidth = 3;
+    ctx2d.shadowColor = '#ffe94a'; ctx2d.shadowBlur = 8;
+    ctx2d.strokeRect(cx+2, cy+2, CELL-4, CELL-4);
+    ctx2d.shadowBlur = 0;
+  }
+}
+
+function drawCell(c, r){
+  const cell = state.grid[r][c];
+  const x = c*CELL, y = r*CELL;
+  if(!cell.revealed){
+    // raised cell
+    ctx2d.fillStyle = '#3a2a5a';
+    ctx2d.fillRect(x+1, y+1, CELL-2, CELL-2);
+    ctx2d.fillStyle = '#5a3f8a';
+    ctx2d.fillRect(x+1, y+1, CELL-2, 3);
+    ctx2d.fillRect(x+1, y+1, 3, CELL-2);
+    ctx2d.fillStyle = '#1a0a2e';
+    ctx2d.fillRect(x+1, y+CELL-4, CELL-2, 3);
+    ctx2d.fillRect(x+CELL-4, y+1, 3, CELL-2);
+    if(cell.flagged){
+      // red flag
+      ctx2d.fillStyle = '#fff';
+      ctx2d.fillRect(x+CELL/2-1, y+8, 2, CELL-12);
+      ctx2d.fillStyle = '#ff4a6b';
+      ctx2d.shadowColor = '#ff4a6b'; ctx2d.shadowBlur = 4;
+      ctx2d.beginPath();
+      ctx2d.moveTo(x+CELL/2+1, y+8);
+      ctx2d.lineTo(x+CELL/2+10, y+13);
+      ctx2d.lineTo(x+CELL/2+1, y+18);
+      ctx2d.closePath(); ctx2d.fill();
+      ctx2d.shadowBlur = 0;
+    }
+  } else {
+    // revealed cell
+    ctx2d.fillStyle = '#0d0824';
+    ctx2d.fillRect(x+1, y+1, CELL-2, CELL-2);
+    ctx2d.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx2d.lineWidth = 1;
+    ctx2d.strokeRect(x+1.5, y+1.5, CELL-3, CELL-3);
+    if(cell.mine){
+      // mine drawn as black circle with spikes
+      const cx = x + CELL/2, cy = y + CELL/2, rad = CELL*0.28;
+      ctx2d.fillStyle = state.status === 'lost' ? '#ff4a6b' : '#fff';
+      ctx2d.shadowColor = ctx2d.fillStyle; ctx2d.shadowBlur = 8;
+      ctx2d.beginPath(); ctx2d.arc(cx, cy, rad, 0, Math.PI*2); ctx2d.fill();
+      ctx2d.shadowBlur = 0;
+      ctx2d.strokeStyle = ctx2d.fillStyle;
+      ctx2d.lineWidth = 2;
+      for(let k=0;k<8;k++){
+        const a = (k/8)*Math.PI*2;
+        ctx2d.beginPath();
+        ctx2d.moveTo(cx + Math.cos(a)*rad, cy + Math.sin(a)*rad);
+        ctx2d.lineTo(cx + Math.cos(a)*(rad+5), cy + Math.sin(a)*(rad+5));
+        ctx2d.stroke();
+      }
+      // shine dot
+      ctx2d.fillStyle = '#fff';
+      ctx2d.beginPath(); ctx2d.arc(cx-rad*0.3, cy-rad*0.3, rad*0.2, 0, Math.PI*2); ctx2d.fill();
+    } else if(cell.num > 0){
+      const colors = ['', '#4a7bff', '#3dff9a', '#ff4a6b', '#b14bff', '#ff8a3d', '#00e6ff', '#ff2d95', '#a79ec9'];
+      ctx2d.fillStyle = colors[cell.num];
+      ctx2d.font = 'bold ' + (CELL*0.6) + 'px "Segoe UI",sans-serif';
+      ctx2d.textAlign = 'center';
+      ctx2d.textBaseline = 'middle';
+      ctx2d.shadowColor = ctx2d.fillStyle; ctx2d.shadowBlur = 4;
+      ctx2d.fillText(cell.num, x+CELL/2, y+CELL/2 + 2);
+      ctx2d.shadowBlur = 0;
+    }
+  }
+}
+
+/* ====== Hold ring (shows reveal/flag mode while holding action button) ====== */
+const ringCanvas = $('holdRing'), ringCtx = ringCanvas.getContext('2d');
+function drawHoldRing(){
+  const W = 104, H = 104;
+  ringCtx.clearRect(0,0,W,H);
+  if(!state || !state.holding) return;
+  const elapsed = performance.now() - state.holdStart;
+  const frac = Math.min(1, elapsed / HOLD_FOR_FLAG);
+  const cx = W/2, cy = H/2;
+  const color = state.flagModeShown ? '#ff4a6b' : '#3dff9a';
+  ringCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ringCtx.lineWidth = 3;
+  ringCtx.beginPath(); ringCtx.arc(cx, cy, 48, 0, Math.PI*2); ringCtx.stroke();
+  ringCtx.strokeStyle = color;
+  ringCtx.shadowColor = color; ringCtx.shadowBlur = 6;
+  ringCtx.lineWidth = 3;
+  ringCtx.beginPath(); ringCtx.arc(cx, cy, 48, -Math.PI/2, -Math.PI/2 + Math.PI*2*frac); ringCtx.stroke();
+  ringCtx.shadowBlur = 0;
+}
+
+/* ====== Input ====== */
+function moveCursor(dir){
+  if(!state || state.status !== 'playing') return;
+  if(dir === 'up'    && state.cursor.r > 0) state.cursor.r--;
+  if(dir === 'down'  && state.cursor.r < ROWS-1) state.cursor.r++;
+  if(dir === 'left'  && state.cursor.c > 0) state.cursor.c--;
+  if(dir === 'right' && state.cursor.c < COLS-1) state.cursor.c++;
+  SFX.cursor();
+}
+
+document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+  const dir = btn.dataset.dir;
+  btn.addEventListener('click', ()=> moveCursor(dir));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+document.addEventListener('keydown', e=>{
+  if(!state) return;
+  if(e.repeat) return;
+  if(e.key === 'ArrowUp')    moveCursor('up');
+  else if(e.key === 'ArrowDown')  moveCursor('down');
+  else if(e.key === 'ArrowLeft')  moveCursor('left');
+  else if(e.key === 'ArrowRight') moveCursor('right');
+  else if(e.key === ' ')          { e.preventDefault(); actionPress(); }
+  else if(e.key === 'p' || e.key === 'P') togglePause();
+});
+document.addEventListener('keyup', e=>{
+  if(e.key === ' ') actionRelease();
+});
+
+const actionBtn = $('btnAction');
+function actionPress(e){
+  if(e) e.preventDefault();
+  if(!state || state.status !== 'playing' || paused) return;
+  state.holding = true;
+  state.holdStart = performance.now();
+  state.flagModeShown = false;
+  actionBtn.classList.remove('flag-mode');
+  actionBtn.textContent = 'REVEAL';
+  actionBtn.style.filter = 'brightness(1.15)';
+}
+function actionRelease(){
+  if(!state || !state.holding) return;
+  const elapsed = performance.now() - state.holdStart;
+  state.holding = false;
+  state.flagModeShown = false;
+  actionBtn.classList.remove('flag-mode');
+  actionBtn.textContent = 'REVEAL';
+  actionBtn.style.filter = '';
+  if(state.status !== 'playing') return;
+  const c = state.cursor.c, r = state.cursor.r;
+  if(elapsed >= HOLD_FOR_FLAG){
+    toggleFlag(c, r);
+  } else {
+    reveal(c, r);
+  }
+  updateHud();
+}
+actionBtn.addEventListener('touchstart', actionPress, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();actionRelease();}, {passive:false});
+actionBtn.addEventListener('touchcancel',e=>{e.preventDefault();state.holding=false;actionBtn.style.filter='';}, {passive:false});
+actionBtn.addEventListener('mousedown', actionPress);
+actionBtn.addEventListener('mouseup',   actionRelease);
+actionBtn.addEventListener('mouseleave',()=>{ if(state && state.holding){ state.holding=false; actionBtn.style.filter=''; }});
+actionBtn.addEventListener('contextmenu', e => e.preventDefault());
+
+// Direct tap on a cell (touch/mouse): single tap = reveal, long-press = flag.
+let tapStart=0, tapCell=null;
+canvas.addEventListener('touchstart', e=>{
+  if(!state || state.status !== 'playing') return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches[0];
+  const x = (t.clientX - rect.left) * (DESIGN_W / rect.width);
+  const y = (t.clientY - rect.top) * (DESIGN_H / rect.height);
+  const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
+  if(c<0||c>=COLS||r<0||r>=ROWS) return;
+  state.cursor = { c, r };
+  tapStart = performance.now();
+  tapCell = { c, r };
+  state.holding = true;
+  state.holdStart = tapStart;
+}, {passive:false});
+canvas.addEventListener('touchend', e=>{
+  if(!state || !tapCell) return;
+  e.preventDefault();
+  const elapsed = performance.now() - tapStart;
+  state.holding = false;
+  state.flagModeShown = false;
+  if(state.status === 'playing'){
+    if(elapsed >= HOLD_FOR_FLAG) toggleFlag(tapCell.c, tapCell.r);
+    else reveal(tapCell.c, tapCell.r);
+  }
+  tapCell = null;
+}, {passive:false});
+canvas.addEventListener('mousedown', e=>{
+  if(!state || state.status !== 'playing') return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (DESIGN_W / rect.width);
+  const y = (e.clientY - rect.top) * (DESIGN_H / rect.height);
+  const c = Math.floor(x / CELL), r = Math.floor(y / CELL);
+  if(c<0||c>=COLS||r<0||r>=ROWS) return;
+  state.cursor = { c, r };
+  tapStart = performance.now();
+  tapCell = { c, r };
+  state.holding = true;
+  state.holdStart = tapStart;
+});
+canvas.addEventListener('mouseup', ()=>{
+  if(!tapCell) return;
+  const elapsed = performance.now() - tapStart;
+  state.holding = false;
+  state.flagModeShown = false;
+  if(state.status === 'playing'){
+    if(elapsed >= HOLD_FOR_FLAG) toggleFlag(tapCell.c, tapCell.r);
+    else reveal(tapCell.c, tapCell.r);
+  }
+  tapCell = null;
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

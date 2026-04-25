@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — SKY DIVER</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a; --neon-orange:#ff8a3d;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#00e6ff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(0,230,255,.18),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(61,255,154,.15),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  .hud{position:relative;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-bottom:1px solid rgba(255,255,255,.06);z-index:5;}
+  .hud-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s;flex:0 0 auto;}
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+  .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .label{color:var(--muted);font-size:9px;letter-spacing:2px;}
+  .val{font-size:14px;font-weight:800;color:var(--accent);text-shadow:0 0 6px rgba(0,230,255,.55);}
+  .val.hi{color:var(--neon-yellow);}
+  .val.cb{color:var(--neon-pink);}
+  .lives{display:flex;gap:3px;}
+  .lives .h{width:10px;height:14px;background:#ff4a6b;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);}
+  .hud-right{display:flex;gap:6px;}
+
+  .play{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04010e;}
+  canvas{display:block;max-width:100%;max-height:100%;}
+
+  .controls{position:relative;border-top:2px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0a0320,#050110);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;min-height:150px;}
+  .dpad{position:relative;width:150px;height:150px;justify-self:start;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);}
+  .dpad button{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .dpad button:active{transform:scale(.9);background:rgba(0,230,255,.3);}
+  .dpad button.disabled{opacity:.25;}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;}
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;}
+  .action{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7af1ff,#00e6ff 55%,#0077a5 100%);color:#04222f;font-weight:900;font-size:13px;letter-spacing:1px;border:none;cursor:pointer;box-shadow:0 0 24px rgba(0,230,255,.55),inset 0 -6px 12px rgba(0,0,0,.3);transition:transform .08s;line-height:1.05;}
+  .action:active{transform:scale(.92);}
+
+  .overlay{position:absolute;inset:0;background:rgba(5,1,15,.85);display:none;align-items:center;justify-content:center;z-index:20;animation:fadeIn .15s ease-out;}
+  .overlay.active{display:flex;}
+  .overlay-box{width:82%;max-width:320px;text-align:center;background:linear-gradient(180deg,#1a0946,#0c0326);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 20px 20px;box-shadow:0 0 40px rgba(0,230,255,.3);}
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#00e6ff,#3dff9a);color:#04222f;box-shadow:0 6px 20px rgba(0,230,255,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .pause-label{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;background:rgba(5,1,15,.55);z-index:15;text-shadow:0 0 10px var(--neon-cyan);}
+  .pause-label.active{display:flex;}
+
+  .opener{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);display:flex;align-items:center;justify-content:center;z-index:30;animation:openerFade 4s forwards;}
+  .opener .gm-name{font-size:clamp(38px,11vw,58px);font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-pink);animation:openerPulse 1s infinite alternate;text-align:center;line-height:1.05;}
+  @keyframes openerFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+  @keyframes openerPulse{from{transform:scale(.95);}to{transform:scale(1.05);}}
+
+  .gameover-box .big-score{font-size:44px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .note{color:var(--neon-cyan);font-size:13px;letter-spacing:2px;margin-bottom:4px;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">SCORE</div><div id="score" class="val">0</div></div>
+      <div class="score-group"><div class="label">HI</div><div id="hiscore" class="val hi">0</div></div>
+      <div class="score-group"><div class="label">COMBO</div><div id="combo" class="val cb">×1</div></div>
+      <div class="score-group"><div class="label">LIVES</div><div id="lives" class="lives"></div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="d-up disabled"   data-dir="up">▲</button>
+      <button class="d-right"         data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left"          data-dir="left">◀</button>
+      <button class="d-down disabled" data-dir="down">▼</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btnAction" class="action">JUMP</button>
+    </div>
+  </div>
+
+  <div id="opener" class="opener"><div class="gm-name">SKY<br>DIVER</div></div>
+
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameOver" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">סיום משחק</div>
+      <div id="finalScore" class="big-score">0</div>
+      <div id="goNote" class="note">&nbsp;</div>
+      <div id="hsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="playAgain" class="btn btn-yes">שחק שוב</button>
+        <button id="backHome"  class="btn btn-no">חזרה ל־ARCADYA</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const SFX = ARCADYA.makeSFX({
+  jump:    beep => { beep(640,0.07,'triangle',0.1); setTimeout(()=>beep(420,0.06,'triangle',0.07),50); },
+  chute:   beep => { beep(880,0.08,'triangle',0.1); setTimeout(()=>beep(660,0.1,'triangle',0.1),60); setTimeout(()=>beep(440,0.12,'triangle',0.08),140); },
+  landing: (beep, pts) => { beep(440 + Math.min(pts,4)*200, 0.08,'triangle',0.13); setTimeout(()=>beep(660 + Math.min(pts,4)*220, 0.1,'triangle',0.13),80); },
+  crash:   beep => { beep(220,0.3,'sawtooth',0.16); setTimeout(()=>beep(110,0.4,'sawtooth',0.14),200); }
+});
+
+/* ====== Shell ====== */
+const HS_KEY = 'arcadya_skydiver_high_score';
+const $ = id => document.getElementById(id);
+let paused=false, gameOverShown=false, running=false;
+
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(); }, 4000);
+
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+$('playAgain').addEventListener('click', ()=>{ SFX.click(); $('gameOver').classList.remove('active'); gameOverShown = false; startGame(); });
+$('backHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Constants ====== */
+const DESIGN_W = 320;
+const DESIGN_H = 540;
+const PLANE_Y  = 36;
+const GROUND_Y = 488;     // top of ground line
+const SOCK_X   = 20;      // wind sock pole position
+const SOCK_Y   = 510;
+const SAFE_LANDING_VY = 2.4;
+
+/* Platform layouts — picked at game start, reshuffled each level. */
+function makePlatforms(level){
+  // 3 platforms: narrow (10, 500), medium (24, 200), wide (44, 50).
+  // Shrink slightly with level.
+  const shrink = Math.min(0.5, (level-1)*0.05);
+  const narrowW = Math.max(8,  Math.round(12 - shrink*4));
+  const medW    = Math.max(18, Math.round(26 - shrink*8));
+  const wideW   = Math.max(34, Math.round(46 - shrink*8));
+  // Random positions across the ground (not overlapping)
+  const slots = [];
+  function rand(min, max){ return min + Math.random()*(max-min); }
+  function placeOnce(w, points){
+    for(let tries=0; tries<40; tries++){
+      const x = rand(20, DESIGN_W - 20 - w);
+      // No overlap with existing
+      let ok = true;
+      for(const s of slots){
+        if(x < s.x + s.w + 16 && x + w + 16 > s.x){ ok = false; break; }
+      }
+      if(ok){ slots.push({x, w, points}); return; }
+    }
+    // Fallback: just push at random
+    slots.push({x: rand(20, DESIGN_W-20-w), w, points});
+  }
+  placeOnce(narrowW, 500);
+  placeOnce(medW,    200);
+  placeOnce(wideW,   50);
+  return slots;
+}
+
+/* ====== Canvas ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  const ratio = DESIGN_W / DESIGN_H;
+  let w = pw, h = pw / ratio;
+  if(h > ph){ h = ph; w = ph * ratio; }
+  canvas.width = DESIGN_W; canvas.height = DESIGN_H;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); if(state) draw(); });
+
+/* ====== Game state ====== */
+let state;
+function startGame(){
+  fitCanvas();
+  state = {
+    level: 1,
+    score: 0,
+    hi: parseInt(localStorage.getItem(HS_KEY)||'0',10),
+    lives: 3,
+    combo: 0,
+    plane: { x: -30, dir: 1, speed: 1.0 },
+    diver: { x: 0, y: PLANE_Y + 10, vx: 0, vy: 0 },
+    wind: rollWind(1),
+    platforms: makePlatforms(1),
+    status: 'inPlane',  // inPlane | freefall | chute | landing | crashed
+    statusUntil: 0,
+    landText: null,     // {x, y, text, t, life}
+    input: { left:false, right:false },
+    lastT: performance.now()
+  };
+  updateHud();
+  updateActionLabel();
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function rollWind(level){
+  const maxW = Math.min(1.4, 0.5 + (level-1)*0.12);
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  return dir * (0.2 + Math.random()*maxW);
+}
+
+function updateHud(){
+  $('score').textContent = state.score;
+  $('hiscore').textContent = Math.max(state.hi, state.score);
+  const cm = state.combo + 1;
+  const mult = comboMult();
+  $('combo').textContent = '×' + mult;
+  const lv = $('lives'); lv.innerHTML = '';
+  for(let i=0;i<state.lives;i++){ const d=document.createElement('div'); d.className='h'; lv.appendChild(d); }
+}
+
+function comboMult(){
+  const c = state.combo;
+  if(c >= 3) return 3;
+  if(c >= 2) return 2;
+  if(c >= 1) return 1.5;
+  return 1;
+}
+
+function updateActionLabel(){
+  const btn = $('btnAction');
+  if(!state){ btn.textContent = 'JUMP'; return; }
+  if(state.status === 'inPlane')      btn.textContent = 'JUMP';
+  else if(state.status === 'freefall') btn.textContent = 'CHUTE!';
+  else if(state.status === 'chute')   btn.textContent = '—';
+  else                                 btn.textContent = 'JUMP';
+}
+
+/* ====== Main loop ====== */
+function loop(now){
+  if(!running) return;
+  const dt = Math.min(48, now - state.lastT);
+  state.lastT = now;
+  if(!paused) update(dt, now);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt, now){
+  const s = state;
+
+  // Plane always moves
+  s.plane.x += s.plane.dir * s.plane.speed * (dt/16.67);
+  if(s.plane.dir > 0 && s.plane.x > DESIGN_W + 30){
+    s.plane.x = -30;
+  }
+  if(s.plane.dir < 0 && s.plane.x < -30){
+    s.plane.x = DESIGN_W + 30;
+  }
+
+  if(s.status === 'inPlane'){
+    s.diver.x = s.plane.x;
+    s.diver.y = PLANE_Y + 10;
+    s.diver.vx = s.plane.dir * s.plane.speed;
+    s.diver.vy = 0;
+  } else if(s.status === 'freefall'){
+    // gravity (slower than before so player has more time to react)
+    s.diver.vy += 0.18 * (dt/16.67);
+    if(s.diver.vy > 3.4) s.diver.vy = 3.4;
+    // input + small wind effect
+    let vx = 0;
+    if(s.input.left)  vx = -1.6;
+    if(s.input.right) vx = +1.6;
+    s.diver.vx = vx + s.wind * 0.18;
+    s.diver.x += s.diver.vx * (dt/16.67);
+    s.diver.y += s.diver.vy * (dt/16.67);
+    s.diver.x = clamp(s.diver.x, 6, DESIGN_W - 6);
+    if(s.diver.y >= GROUND_Y - 10){
+      // Hit ground without chute → crash
+      onLanded();
+    }
+  } else if(s.status === 'chute'){
+    // Slow descent; gentle gravity tug toward terminal
+    const terminal = 1.1;
+    if(s.diver.vy < terminal) s.diver.vy += 0.04 * (dt/16.67);
+    else s.diver.vy = terminal;
+    let vx = 0;
+    if(s.input.left)  vx = -1.5;
+    if(s.input.right) vx = +1.5;
+    // Full wind effect when chute is open
+    s.diver.vx = vx + s.wind * 1.0;
+    s.diver.x += s.diver.vx * (dt/16.67);
+    s.diver.y += s.diver.vy * (dt/16.67);
+    s.diver.x = clamp(s.diver.x, 6, DESIGN_W - 6);
+    if(s.diver.y >= GROUND_Y - 10){
+      onLanded();
+    }
+  } else if(s.status === 'landing' || s.status === 'crashed'){
+    if(now >= s.statusUntil){
+      if(s.lives <= 0){ endGame(); return; }
+      backToPlane();
+    }
+  }
+
+  // Floating land text fade
+  if(s.landText){
+    s.landText.t += dt;
+    s.landText.y -= 0.4 * (dt/16.67);
+    if(s.landText.t >= s.landText.life) s.landText = null;
+  }
+
+  updateHud();
+}
+
+function onLanded(){
+  const s = state;
+  const dx = s.diver.x;
+  const isChute = (s.status === 'chute');
+  if(!isChute){
+    // free-fall onto ground = crash
+    s.status = 'crashed';
+    s.statusUntil = performance.now() + 1200;
+    s.lives--;
+    s.combo = 0;
+    SFX.crash();
+    s.landText = { x: dx, y: GROUND_Y - 10, text: 'CRASH!', color:'#ff4a6b', t:0, life:1100 };
+    return;
+  }
+  // Find platform
+  let pts = 0;
+  for(const p of s.platforms){
+    if(dx >= p.x && dx <= p.x + p.w){ pts = p.points; break; }
+  }
+  if(pts === 0){
+    // missed all platforms but still chute → safe but no points, no combo
+    s.status = 'landing';
+    s.statusUntil = performance.now() + 1100;
+    s.combo = 0;
+    s.landText = { x: dx, y: GROUND_Y - 10, text: '+0', color:'#a79ec9', t:0, life:1100 };
+    SFX.landing(0);
+  } else {
+    const mult = comboMult();
+    const earned = Math.round(pts * mult);
+    s.score += earned;
+    s.combo++;
+    s.status = 'landing';
+    s.statusUntil = performance.now() + 1100;
+    s.landText = { x: dx, y: GROUND_Y - 10, text: '+' + earned, color: pts >= 500 ? '#ffe94a' : pts >= 200 ? '#3dff9a' : '#00e6ff', t:0, life:1100 };
+    SFX.landing(pts);
+    if(s.score > s.hi){ s.hi = s.score; localStorage.setItem(HS_KEY, s.hi); }
+  }
+  // Level up gradually with successful landings
+  if(s.combo > 0 && s.combo % 3 === 0){
+    s.level++;
+    s.platforms = makePlatforms(s.level);
+    s.plane.speed = Math.min(2.4, 1.0 + (s.level-1)*0.12);
+  }
+}
+
+function backToPlane(){
+  const s = state;
+  s.status = 'inPlane';
+  s.wind = rollWind(s.level);
+  s.diver.vx = 0; s.diver.vy = 0;
+  // Random plane direction each round
+  s.plane.dir = Math.random() < 0.5 ? -1 : 1;
+  s.plane.x = s.plane.dir > 0 ? -30 : DESIGN_W + 30;
+  updateActionLabel();
+}
+
+function endGame(){
+  running = false;
+  const s = state;
+  $('finalScore').textContent = s.score;
+  $('goNote').textContent = 'שלב ' + s.level;
+  const prev = parseInt(localStorage.getItem(HS_KEY)||'0',10);
+  $('hsNote').innerHTML = (s.score >= prev && s.score > 0) ? '🏆 שיא חדש!' : 'שיא: ' + prev;
+  gameOverShown = true;
+  setTimeout(()=>$('gameOver').classList.add('active'), 400);
+}
+
+/* ====== Drawing ====== */
+function draw(){
+  const W = DESIGN_W, H = DESIGN_H;
+
+  // Sky gradient
+  const sky = ctx2d.createLinearGradient(0, 0, 0, GROUND_Y);
+  sky.addColorStop(0, '#0a0a3a');
+  sky.addColorStop(0.5, '#1a3a8a');
+  sky.addColorStop(1, '#3a7fa8');
+  ctx2d.fillStyle = sky;
+  ctx2d.fillRect(0, 0, W, GROUND_Y);
+
+  // Stars
+  ctx2d.fillStyle = 'rgba(255,255,255,0.55)';
+  const seed = 12345;
+  for(let i=0;i<20;i++){
+    const x = (i*73 + seed) % W;
+    const y = (i*47 + seed/3) % 200;
+    ctx2d.fillRect(x, y, 1, 1);
+  }
+  // Distant clouds (slow scroll)
+  const t = performance.now()/100;
+  ctx2d.fillStyle = 'rgba(255,255,255,0.12)';
+  for(let i=0;i<5;i++){
+    const cx = ((i*120 + t)%(W+80)) - 40;
+    drawCloud(cx, 80 + i*10);
+  }
+
+  // Ground
+  const grd = ctx2d.createLinearGradient(0, GROUND_Y, 0, H);
+  grd.addColorStop(0, '#3d6e1f');
+  grd.addColorStop(0.4, '#2d4f17');
+  grd.addColorStop(1, '#1d2f0e');
+  ctx2d.fillStyle = grd;
+  ctx2d.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  // Ground line
+  ctx2d.fillStyle = '#3dff9a';
+  ctx2d.shadowColor = '#3dff9a'; ctx2d.shadowBlur = 6;
+  ctx2d.fillRect(0, GROUND_Y - 1, W, 1);
+  ctx2d.shadowBlur = 0;
+
+  // Decorations: trees & little house
+  drawTree(40, GROUND_Y - 1);
+  drawTree(290, GROUND_Y - 1);
+  drawHouse(150, GROUND_Y - 1);
+
+  // Platforms — taller, with corner posts and clearer labels
+  for(const p of state.platforms){
+    const color = p.points >= 500 ? '#ffe94a' : p.points >= 200 ? '#3dff9a' : '#00e6ff';
+    // Corner posts
+    ctx2d.fillStyle = color;
+    ctx2d.shadowColor = color; ctx2d.shadowBlur = 10;
+    ctx2d.fillRect(p.x - 1, GROUND_Y - 14, 3, 14);
+    ctx2d.fillRect(p.x + p.w - 2, GROUND_Y - 14, 3, 14);
+    // Platform surface
+    ctx2d.fillRect(p.x, GROUND_Y - 8, p.w, 8);
+    ctx2d.shadowBlur = 0;
+    // Inner highlight stripe
+    ctx2d.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx2d.fillRect(p.x + 1, GROUND_Y - 7, p.w - 2, 1.5);
+    // Score label inside platform
+    ctx2d.fillStyle = '#05010f';
+    ctx2d.font = 'bold 10px "Segoe UI",sans-serif';
+    ctx2d.textAlign = 'center';
+    ctx2d.textBaseline = 'middle';
+    ctx2d.fillText(p.points, p.x + p.w/2, GROUND_Y - 4);
+    ctx2d.textBaseline = 'alphabetic';
+  }
+
+  // Plane
+  drawPlane(state.plane.x, PLANE_Y, state.plane.dir);
+
+  // Diver
+  drawDiver(state.diver.x, state.diver.y, state.status, state.diver.vx);
+
+  // Wind sock
+  drawWindSock(SOCK_X, SOCK_Y, state.wind);
+
+  // Altitude indicator (right edge)
+  if(state.status === 'freefall' || state.status === 'chute'){
+    drawAltitudeBar(state.diver.y);
+  }
+
+  // Floating land text
+  if(state.landText){
+    const lt = state.landText;
+    const a = 1 - lt.t/lt.life;
+    ctx2d.fillStyle = lt.color;
+    ctx2d.globalAlpha = a;
+    ctx2d.font = 'bold 18px "Segoe UI",sans-serif';
+    ctx2d.textAlign = 'center';
+    ctx2d.shadowColor = lt.color; ctx2d.shadowBlur = 8;
+    ctx2d.fillText(lt.text, lt.x, lt.y);
+    ctx2d.shadowBlur = 0;
+    ctx2d.globalAlpha = 1;
+  }
+}
+
+function drawPlane(x, y, dir){
+  ctx2d.save();
+  ctx2d.translate(x, y);
+  if(dir < 0) ctx2d.scale(-1, 1);
+  ctx2d.fillStyle = '#fff';
+  ctx2d.shadowColor = '#fff'; ctx2d.shadowBlur = 6;
+  // body
+  ctx2d.beginPath();
+  ctx2d.moveTo(-12, 0); ctx2d.lineTo(14, 0);
+  ctx2d.lineTo(20, 2); ctx2d.lineTo(-12, 4); ctx2d.closePath();
+  ctx2d.fill();
+  // wing
+  ctx2d.fillRect(-4, -4, 14, 3);
+  // tail
+  ctx2d.fillRect(-12, -6, 4, 7);
+  // window
+  ctx2d.fillStyle = '#4a7bff';
+  ctx2d.fillRect(8, 0, 4, 2);
+  ctx2d.shadowBlur = 0;
+  ctx2d.restore();
+}
+
+function drawDiver(x, y, status, vx){
+  // While the diver is "inPlane" we render nothing (it's hidden inside the plane).
+  if(status === 'inPlane') return;
+
+  ctx2d.save();
+  ctx2d.translate(x, y);
+
+  const isFreefall = status === 'freefall' ||
+    (status === 'crashed' && state.landText && state.landText.text === 'CRASH!' && state.landText.t > 200);
+
+  if(isFreefall){
+    // Top-down view of a skydiver in the classic "arch" position:
+    // arms extend forward-and-outward (toward the head), legs spread
+    // backward-and-outward — forming an X with curves, not a cross.
+    ctx2d.save();
+
+    // Soft shadow under the diver
+    ctx2d.fillStyle = 'rgba(0,0,0,0.18)';
+    ctx2d.beginPath();
+    ctx2d.ellipse(0, 8, 15, 5, 0, 0, Math.PI*2);
+    ctx2d.fill();
+
+    // Limbs drawn as round-cap strokes for natural look
+    ctx2d.strokeStyle = '#ff4a6b';
+    ctx2d.lineWidth = 4;
+    ctx2d.lineCap = 'round';
+    ctx2d.shadowColor = '#ff4a6b'; ctx2d.shadowBlur = 3;
+
+    // Left arm: from left shoulder forward-out toward upper-left
+    ctx2d.beginPath();
+    ctx2d.moveTo(-3, -4);
+    ctx2d.lineTo(-13, -9);
+    ctx2d.stroke();
+    // Right arm: from right shoulder forward-out toward upper-right
+    ctx2d.beginPath();
+    ctx2d.moveTo(3, -4);
+    ctx2d.lineTo(13, -9);
+    ctx2d.stroke();
+    // Left leg: from left hip back-out toward lower-left
+    ctx2d.beginPath();
+    ctx2d.moveTo(-2, 6);
+    ctx2d.lineTo(-10, 14);
+    ctx2d.stroke();
+    // Right leg: from right hip back-out toward lower-right
+    ctx2d.beginPath();
+    ctx2d.moveTo(2, 6);
+    ctx2d.lineTo(10, 14);
+    ctx2d.stroke();
+
+    ctx2d.shadowBlur = 0;
+
+    // Torso (vertical oval, in middle)
+    ctx2d.fillStyle = '#ff4a6b';
+    ctx2d.shadowColor = '#ff4a6b'; ctx2d.shadowBlur = 4;
+    ctx2d.beginPath();
+    ctx2d.ellipse(0, 1, 4.5, 7, 0, 0, Math.PI*2);
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+
+    // Backpack stripe down the back
+    ctx2d.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx2d.fillRect(-1.2, -3, 2.4, 8);
+
+    // Hands (skin tone) at ends of arms
+    ctx2d.fillStyle = '#ffd0a0';
+    ctx2d.beginPath(); ctx2d.arc(-13, -9, 2.2, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.beginPath(); ctx2d.arc( 13, -9, 2.2, 0, Math.PI*2); ctx2d.fill();
+
+    // Feet (dark) at ends of legs
+    ctx2d.fillStyle = '#3a1010';
+    ctx2d.beginPath(); ctx2d.arc(-10, 14, 2.2, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.beginPath(); ctx2d.arc( 10, 14, 2.2, 0, Math.PI*2); ctx2d.fill();
+
+    // Head (circle above torso)
+    ctx2d.fillStyle = '#ffd0a0';
+    ctx2d.beginPath();
+    ctx2d.arc(0, -9, 3.8, 0, Math.PI*2);
+    ctx2d.fill();
+    // Goggles
+    ctx2d.fillStyle = '#1a1010';
+    ctx2d.fillRect(-3, -10, 6, 1.8);
+
+    ctx2d.restore();
+  } else if(status === 'chute'){
+    ctx2d.fillStyle = '#ff8a3d';
+    ctx2d.shadowColor = '#ff8a3d'; ctx2d.shadowBlur = 6;
+    ctx2d.beginPath();
+    ctx2d.arc(0, -16, 14, Math.PI, 0);
+    ctx2d.lineTo(14, -14); ctx2d.lineTo(-14, -14); ctx2d.closePath();
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    ctx2d.fillStyle = '#ffe94a';
+    ctx2d.beginPath(); ctx2d.arc(0, -16, 14, Math.PI, Math.PI + Math.PI/6); ctx2d.lineTo(0,-14); ctx2d.closePath(); ctx2d.fill();
+    ctx2d.beginPath(); ctx2d.arc(0, -16, 14, Math.PI*5/6, Math.PI); ctx2d.lineTo(0,-14); ctx2d.closePath(); ctx2d.fill();
+    ctx2d.strokeStyle = '#fff';
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath(); ctx2d.moveTo(-12, -14); ctx2d.lineTo(-2, -2); ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.moveTo(12, -14); ctx2d.lineTo(2, -2); ctx2d.stroke();
+    ctx2d.fillStyle = '#ff4a6b';
+    ctx2d.fillRect(-3, -2, 6, 8);
+    ctx2d.fillStyle = '#ffd0a0';
+    ctx2d.beginPath(); ctx2d.arc(0, -4, 2.5, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.fillStyle = '#ff4a6b';
+    ctx2d.fillRect(-3, 6, 2, 4);
+    ctx2d.fillRect( 1, 6, 2, 4);
+  } else if(status === 'landing'){
+    ctx2d.fillStyle = '#ff4a6b';
+    ctx2d.fillRect(-3, -10, 6, 8);
+    ctx2d.fillStyle = '#ffd0a0';
+    ctx2d.beginPath(); ctx2d.arc(0, -13, 3, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.fillStyle = '#ff4a6b';
+    ctx2d.fillRect(-3, -2, 2, 4);
+    ctx2d.fillRect( 1, -2, 2, 4);
+  }
+
+  ctx2d.restore();
+}
+
+function drawWindSock(x, y, wind){
+  // Bigger pole
+  ctx2d.fillStyle = '#d8d0e0';
+  ctx2d.shadowColor = '#000'; ctx2d.shadowBlur = 3;
+  ctx2d.fillRect(x-2, y-40, 4, 48);
+  ctx2d.shadowBlur = 0;
+  // Pole base
+  ctx2d.fillStyle = '#5a5070';
+  ctx2d.fillRect(x-5, y+6, 10, 4);
+  // Top ring
+  ctx2d.fillStyle = '#3dff9a';
+  ctx2d.shadowColor = '#3dff9a'; ctx2d.shadowBlur = 6;
+  ctx2d.beginPath(); ctx2d.arc(x, y-40, 3, 0, Math.PI*2); ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+  // Sock direction: when wind=0 sock hangs straight down; when |wind|=1.4 sock is horizontal.
+  const droop = 1 - Math.min(1, Math.abs(wind)/1.4);   // 0=horizontal, 1=down
+  const dirSign = wind >= 0 ? 1 : -1;
+  const sockAngle = (Math.PI/2) * droop + (dirSign > 0 ? 0 : Math.PI - (Math.PI/2)*droop*2);
+  // Bigger sock: longer + wider
+  const len = 26 + Math.abs(wind) * 22;
+  const baseX = x, baseY = y - 40;
+  const tipX = baseX + Math.cos(sockAngle) * len;
+  const tipY = baseY + Math.sin(sockAngle) * len;
+  const px = -Math.sin(sockAngle), py = Math.cos(sockAngle);
+  const baseW = 9, tipW = 2.5;
+  const segs = 5;
+  for(let i=0;i<segs;i++){
+    const t1 = i/segs, t2 = (i+1)/segs;
+    const w1 = baseW + (tipW - baseW)*t1;
+    const w2 = baseW + (tipW - baseW)*t2;
+    const x1 = baseX + (tipX-baseX)*t1, y1 = baseY + (tipY-baseY)*t1;
+    const x2 = baseX + (tipX-baseX)*t2, y2 = baseY + (tipY-baseY)*t2;
+    ctx2d.fillStyle = (i%2===0) ? '#ff4a6b' : '#fff';
+    ctx2d.shadowColor = (i%2===0) ? '#ff4a6b' : '#fff'; ctx2d.shadowBlur = 4;
+    ctx2d.beginPath();
+    ctx2d.moveTo(x1 + px*w1, y1 + py*w1);
+    ctx2d.lineTo(x2 + px*w2, y2 + py*w2);
+    ctx2d.lineTo(x2 - px*w2, y2 - py*w2);
+    ctx2d.lineTo(x1 - px*w1, y1 - py*w1);
+    ctx2d.closePath(); ctx2d.fill();
+  }
+  ctx2d.shadowBlur = 0;
+  // Outline
+  ctx2d.strokeStyle = '#3a1010';
+  ctx2d.lineWidth = 1;
+  ctx2d.beginPath();
+  ctx2d.moveTo(baseX + px*baseW, baseY + py*baseW);
+  ctx2d.lineTo(tipX + px*tipW, tipY + py*tipW);
+  ctx2d.lineTo(tipX - px*tipW, tipY - py*tipW);
+  ctx2d.lineTo(baseX - px*baseW, baseY - py*baseW);
+  ctx2d.closePath(); ctx2d.stroke();
+  // Label
+  ctx2d.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx2d.font = 'bold 10px "Segoe UI",sans-serif';
+  ctx2d.textAlign = 'center';
+  ctx2d.fillText('WIND', x, y + 22);
+}
+
+function drawAltitudeBar(divY){
+  const x = DESIGN_W - 8, top = PLANE_Y + 12, bot = GROUND_Y - 4;
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx2d.lineWidth = 1;
+  ctx2d.beginPath(); ctx2d.moveTo(x, top); ctx2d.lineTo(x, bot); ctx2d.stroke();
+  // Marker for golden zone (mid altitude — perfect time to open chute)
+  const goldTop = top + (bot - top) * 0.35;
+  const goldBot = top + (bot - top) * 0.65;
+  ctx2d.fillStyle = 'rgba(255,233,74,0.4)';
+  ctx2d.fillRect(x - 2, goldTop, 4, goldBot - goldTop);
+  // Diver position
+  const py = clamp(divY, top, bot);
+  ctx2d.fillStyle = state.status === 'chute' ? '#ff8a3d' : '#fff';
+  ctx2d.beginPath(); ctx2d.arc(x, py, 2.5, 0, Math.PI*2); ctx2d.fill();
+}
+
+function drawCloud(x, y){
+  ctx2d.beginPath();
+  ctx2d.arc(x, y, 8, 0, Math.PI*2);
+  ctx2d.arc(x+8, y-2, 6, 0, Math.PI*2);
+  ctx2d.arc(x+14, y, 8, 0, Math.PI*2);
+  ctx2d.fill();
+}
+
+function drawTree(x, y){
+  // Trunk
+  ctx2d.fillStyle = '#5a3010';
+  ctx2d.fillRect(x-3, y-2, 6, 18);
+  // Foliage (3 layered triangles, larger)
+  ctx2d.fillStyle = '#2a6e1a';
+  ctx2d.shadowColor = '#1a4a10'; ctx2d.shadowBlur = 4;
+  ctx2d.beginPath();
+  ctx2d.moveTo(x-16, y-2); ctx2d.lineTo(x, y-30); ctx2d.lineTo(x+16, y-2); ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.fillStyle = '#3a8e1a';
+  ctx2d.beginPath();
+  ctx2d.moveTo(x-13, y-14); ctx2d.lineTo(x, y-38); ctx2d.lineTo(x+13, y-14); ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.fillStyle = '#4dae2a';
+  ctx2d.beginPath();
+  ctx2d.moveTo(x-10, y-26); ctx2d.lineTo(x, y-46); ctx2d.lineTo(x+10, y-26); ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+}
+
+function drawHouse(x, y){
+  // Body
+  ctx2d.fillStyle = '#e8b582';
+  ctx2d.shadowColor = '#000'; ctx2d.shadowBlur = 4;
+  ctx2d.fillRect(x-20, y-22, 40, 23);
+  ctx2d.shadowBlur = 0;
+  // Wood frame
+  ctx2d.strokeStyle = '#5a3010';
+  ctx2d.lineWidth = 2;
+  ctx2d.strokeRect(x-20, y-22, 40, 23);
+  // Roof
+  ctx2d.fillStyle = '#b81030';
+  ctx2d.shadowColor = '#b81030'; ctx2d.shadowBlur = 6;
+  ctx2d.beginPath();
+  ctx2d.moveTo(x-23, y-22); ctx2d.lineTo(x, y-38); ctx2d.lineTo(x+23, y-22); ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+  // Roof tile lines
+  ctx2d.strokeStyle = '#5a0010';
+  ctx2d.lineWidth = 1;
+  for(let i=1;i<4;i++){
+    ctx2d.beginPath();
+    ctx2d.moveTo(x-23 + i*5, y-22 - i*4);
+    ctx2d.lineTo(x+23 - i*5, y-22 - i*4);
+    ctx2d.stroke();
+  }
+  // Door
+  ctx2d.fillStyle = '#3a1010';
+  ctx2d.fillRect(x-5, y-13, 10, 14);
+  ctx2d.fillStyle = '#ffe94a';
+  ctx2d.beginPath(); ctx2d.arc(x+3, y-6, 0.8, 0, Math.PI*2); ctx2d.fill();
+  // Windows (larger, framed)
+  ctx2d.fillStyle = '#a0d8ff';
+  ctx2d.shadowColor = '#a0d8ff'; ctx2d.shadowBlur = 6;
+  ctx2d.fillRect(x-16, y-18, 7, 7);
+  ctx2d.fillRect(x+9, y-18, 7, 7);
+  ctx2d.shadowBlur = 0;
+  ctx2d.strokeStyle = '#5a3010';
+  ctx2d.lineWidth = 1;
+  ctx2d.strokeRect(x-16, y-18, 7, 7);
+  ctx2d.strokeRect(x+9, y-18, 7, 7);
+  // Window cross
+  ctx2d.beginPath(); ctx2d.moveTo(x-12.5, y-18); ctx2d.lineTo(x-12.5, y-11); ctx2d.stroke();
+  ctx2d.beginPath(); ctx2d.moveTo(x-16, y-14.5); ctx2d.lineTo(x-9, y-14.5); ctx2d.stroke();
+  ctx2d.beginPath(); ctx2d.moveTo(x+12.5, y-18); ctx2d.lineTo(x+12.5, y-11); ctx2d.stroke();
+  ctx2d.beginPath(); ctx2d.moveTo(x+9, y-14.5); ctx2d.lineTo(x+16, y-14.5); ctx2d.stroke();
+  // Chimney
+  ctx2d.fillStyle = '#7a5040';
+  ctx2d.fillRect(x+8, y-36, 5, 10);
+}
+
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+/* ====== Input ====== */
+function setMove(dir, on){
+  if(!state) return;
+  if(dir === 'left')  state.input.left  = on;
+  if(dir === 'right') state.input.right = on;
+}
+
+document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+  const dir = btn.dataset.dir;
+  if(dir === 'up' || dir === 'down') return;
+  const down = e => { e.preventDefault(); setMove(dir, true); };
+  const up   = e => { e.preventDefault(); setMove(dir, false); };
+  btn.addEventListener('touchstart', down, {passive:false});
+  btn.addEventListener('touchend',   up,   {passive:false});
+  btn.addEventListener('touchcancel',up,   {passive:false});
+  btn.addEventListener('mousedown', down);
+  btn.addEventListener('mouseup',   up);
+  btn.addEventListener('mouseleave',up);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+document.addEventListener('keydown', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowLeft')  setMove('left', true);
+  else if(e.key === 'ArrowRight') setMove('right', true);
+  else if(e.key === ' ')          { e.preventDefault(); actionPress(); }
+  else if(e.key === 'p' || e.key === 'P') togglePause();
+});
+document.addEventListener('keyup', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowLeft')  setMove('left', false);
+  if(e.key === 'ArrowRight') setMove('right', false);
+});
+
+const actionBtn = $('btnAction');
+function actionPress(e){
+  if(e) e.preventDefault();
+  if(!state || paused) return;
+  if(state.status === 'inPlane'){
+    state.status = 'freefall';
+    state.diver.vx = state.plane.dir * state.plane.speed;
+    state.diver.vy = 0.5;
+    SFX.jump();
+    updateActionLabel();
+  } else if(state.status === 'freefall'){
+    state.status = 'chute';
+    // Open chute — slow descent immediately
+    state.diver.vy = Math.min(state.diver.vy, 1.2);
+    SFX.chute();
+    updateActionLabel();
+  }
+  actionBtn.style.filter = 'brightness(1.2)';
+}
+function actionRelease(){
+  actionBtn.style.filter = '';
+}
+actionBtn.addEventListener('touchstart', actionPress, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();actionRelease();}, {passive:false});
+actionBtn.addEventListener('mousedown', actionPress);
+actionBtn.addEventListener('mouseup',   actionRelease);
+actionBtn.addEventListener('mouseleave',actionRelease);
+actionBtn.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — SNAKE</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#3dff9a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(177,75,255,.22),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(0,230,255,.18),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  /* ===== Top HUD ===== */
+  .hud{
+    position:relative;display:flex;align-items:center;justify-content:space-between;
+    padding:10px 12px;gap:8px;
+    background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);
+    border-bottom:1px solid rgba(255,255,255,.06);
+    z-index:5;
+  }
+  .hud-btn{
+    width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.05);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:transform .08s;
+  }
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:18px;align-items:center;font-size:13px;letter-spacing:1px;}
+  .hud-center .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .hud-center .label{color:var(--muted);font-size:10px;letter-spacing:2px;}
+  .hud-center .val{font-size:18px;font-weight:800;color:var(--accent);text-shadow:0 0 8px rgba(61,255,154,.6);}
+  .hud-right{display:flex;gap:6px;}
+
+  /* ===== Play area ===== */
+  .play{
+    flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+    background:
+      linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px) 0 0/22px 22px,
+      linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px) 0 0/22px 22px,
+      radial-gradient(circle at 50% 40%,rgba(61,255,154,.08),transparent 70%);
+    overflow:hidden;
+  }
+  canvas{display:block;max-width:100%;max-height:100%;image-rendering:pixelated;}
+
+  /* ===== Controls bar ===== */
+  .controls{
+    position:relative;
+    border-top:2px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg,#0a0320,#050110);
+    padding:14px 14px calc(14px + env(safe-area-inset-bottom));
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;
+    min-height:150px;
+  }
+  .dpad{
+    position:relative;width:150px;height:150px;justify-self:start;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+  }
+  .dpad button{
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;
+    font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+  }
+  .dpad button:active{transform:scale(.9);background:rgba(255,45,149,.25);}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;} /* RTL: visually LEFT side */
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;}
+  .action{
+    width:96px;height:96px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#ff6ec4,#ff2d95 55%,#b14bff 100%);
+    color:#fff;font-weight:900;font-size:14px;letter-spacing:2px;
+    border:none;cursor:pointer;
+    box-shadow:0 0 24px rgba(255,45,149,.5),inset 0 -6px 12px rgba(0,0,0,.3);
+    transition:transform .08s;
+  }
+  .action:active{transform:scale(.92);}
+
+  /* ===== Overlays ===== */
+  .overlay{
+    position:absolute;inset:0;background:rgba(5,1,15,.85);
+    display:none;align-items:center;justify-content:center;z-index:20;
+    animation:fadeIn .15s ease-out;
+  }
+  .overlay.active{display:flex;}
+  .overlay-box{
+    width:82%;max-width:320px;text-align:center;
+    background:linear-gradient(180deg,#1a0946,#0c0326);
+    border:1px solid rgba(255,255,255,.12);border-radius:20px;
+    padding:24px 20px 20px;box-shadow:0 0 40px rgba(177,75,255,.35);
+  }
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#ff2d95,#b14bff);color:#fff;box-shadow:0 6px 20px rgba(255,45,149,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .pause-label{
+    position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+    color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;
+    background:rgba(5,1,15,.55);z-index:15;
+    text-shadow:0 0 10px var(--neon-cyan);
+  }
+  .pause-label.active{display:flex;}
+
+  /* ===== Opening animation ===== */
+  .opener{
+    position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);
+    display:flex;align-items:center;justify-content:center;z-index:30;
+    animation:openerFade 4s forwards;
+  }
+  .opener .gm-name{
+    font-size:clamp(44px,13vw,72px);font-weight:900;letter-spacing:8px;color:#fff;
+    text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-cyan);
+    animation:openerPulse 1s infinite alternate;
+  }
+  @keyframes openerFade{
+    0%{opacity:1;} 80%{opacity:1;} 100%{opacity:0;visibility:hidden;}
+  }
+  @keyframes openerPulse{
+    from{transform:scale(.95);text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent);}
+    to{transform:scale(1.05);text-shadow:0 0 12px #fff,0 0 28px var(--accent),0 0 60px var(--accent);}
+  }
+
+  /* ===== Game over ===== */
+  .gameover-box .big-score{font-size:48px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;}
+
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+
+  <!-- HUD -->
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">SCORE</div><div id="score" class="val">0</div></div>
+      <div class="score-group"><div class="label">HI</div><div id="hiscore" class="val">0</div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <!-- Play -->
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <!-- RIGHT side (first in RTL DOM order): D-pad -->
+    <div class="dpad">
+      <button class="d-up"    data-dir="up">▲</button>
+      <button class="d-right" data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left"  data-dir="left">◀</button>
+      <button class="d-down"  data-dir="down">▼</button>
+    </div>
+    <!-- LEFT side: action button -->
+    <div class="action-wrap">
+      <button id="btnAction" class="action">BOOST</button>
+    </div>
+  </div>
+
+  <!-- Opening animation -->
+  <div id="opener" class="opener"><div class="gm-name">SNAKE</div></div>
+
+  <!-- Exit modal -->
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game over -->
+  <div id="gameOver" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">סיום משחק</div>
+      <div id="finalScore" class="big-score">0</div>
+      <div id="hsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="playAgain" class="btn btn-yes">שחק שוב</button>
+        <button id="backHome"  class="btn btn-no">חזרה ל־ARCADYA</button>
+      </div>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+/* SFX — shared engine (click/open/mute) + game-specific extras */
+const SFX = ARCADYA.makeSFX({
+  pickup: beep => { beep(880,0.07,'triangle',0.12); setTimeout(()=>beep(1320,0.06,'triangle',0.1),60); },
+  hit:    beep => beep(140,0.25,'sawtooth',0.18),
+  win:    beep => { beep(660,0.09,'triangle',0.12); setTimeout(()=>beep(990,0.12,'triangle',0.12),100); }
+});
+
+/* ====== Shell: HUD buttons, pause, exit, opener, replay ====== */
+const HS_KEY = 'arcadya_snake_high_score';
+const $ = id => document.getElementById(id);
+let paused = false, gameOverShown = false, running = false;
+
+// Opening animation (4s per guidelines)
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(); }, 4000);
+
+// Sound button
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+// Pause
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+// Exit flow
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+// Game over buttons
+$('playAgain').addEventListener('click', ()=>{ SFX.click(); $('gameOver').classList.remove('active'); gameOverShown = false; startGame(); });
+$('backHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Snake game logic ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+const COLS = 17, ROWS = 22;
+let cell = 20;
+let snake, dir, nextDir, food, score, hi, speed, tickTimer, boosting;
+
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  cell = Math.floor(Math.min(pw/COLS, ph/ROWS));
+  canvas.width = cell*COLS;
+  canvas.height = cell*ROWS;
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); draw(); });
+
+function startGame(){
+  fitCanvas();
+  snake = [{x:8,y:11},{x:7,y:11},{x:6,y:11}];
+  dir = {x:1,y:0}; nextDir = {x:1,y:0};
+  score = 0; boosting = false;
+  hi = parseInt(localStorage.getItem(HS_KEY)||'0',10);
+  $('score').textContent = score; $('hiscore').textContent = hi;
+  placeFood();
+  speed = 140;
+  running = true;
+  scheduleTick();
+  draw();
+}
+function scheduleTick(){
+  clearTimeout(tickTimer);
+  const s = boosting ? Math.max(50, speed*0.55) : speed;
+  tickTimer = setTimeout(tick, s);
+}
+function placeFood(){
+  while(true){
+    const f = {x:Math.floor(Math.random()*COLS), y:Math.floor(Math.random()*ROWS)};
+    if(!snake.some(s=>s.x===f.x && s.y===f.y)){ food = f; return; }
+  }
+}
+function tick(){
+  if(!running) return;
+  if(!paused){
+    // accept new direction if not opposite
+    if(nextDir.x !== -dir.x || nextDir.y !== -dir.y) dir = nextDir;
+    const head = {x:snake[0].x + dir.x, y:snake[0].y + dir.y};
+    // walls
+    if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS) return endGame();
+    // self
+    if(snake.some(s=>s.x===head.x && s.y===head.y)) return endGame();
+    snake.unshift(head);
+    if(head.x===food.x && head.y===food.y){
+      score += 10; $('score').textContent = score;
+      if(score > hi){ hi = score; localStorage.setItem(HS_KEY, hi); $('hiscore').textContent = hi; }
+      SFX.pickup();
+      placeFood();
+      // slight difficulty ramp
+      if(speed > 70 && score % 40 === 0) speed -= 6;
+    } else {
+      snake.pop();
+    }
+    draw();
+  }
+  scheduleTick();
+}
+function draw(){
+  const W = canvas.width, H = canvas.height;
+  ctx2d.fillStyle = '#060118';
+  ctx2d.fillRect(0,0,W,H);
+  // grid
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx2d.lineWidth = 1;
+  for(let x=0;x<=COLS;x++){ ctx2d.beginPath(); ctx2d.moveTo(x*cell,0); ctx2d.lineTo(x*cell,H); ctx2d.stroke(); }
+  for(let y=0;y<=ROWS;y++){ ctx2d.beginPath(); ctx2d.moveTo(0,y*cell); ctx2d.lineTo(W,y*cell); ctx2d.stroke(); }
+  // food
+  const fx = food.x*cell+cell/2, fy = food.y*cell+cell/2, fr = cell*0.35;
+  const grad = ctx2d.createRadialGradient(fx,fy,1,fx,fy,fr*1.6);
+  grad.addColorStop(0,'#fff'); grad.addColorStop(0.3,'#ff4a6b'); grad.addColorStop(1,'rgba(255,74,107,0)');
+  ctx2d.fillStyle = grad;
+  ctx2d.beginPath(); ctx2d.arc(fx,fy,fr*1.6,0,Math.PI*2); ctx2d.fill();
+  ctx2d.fillStyle = '#ff4a6b';
+  ctx2d.beginPath(); ctx2d.arc(fx,fy,fr,0,Math.PI*2); ctx2d.fill();
+  // snake
+  snake.forEach((s,i)=>{
+    const t = i/Math.max(1,snake.length-1);
+    const head = i===0;
+    ctx2d.fillStyle = head ? '#aaffd1' : `rgba(61,255,154,${0.95 - t*0.4})`;
+    const px = s.x*cell+1, py = s.y*cell+1, sz = cell-2;
+    roundRect(ctx2d, px, py, sz, sz, Math.max(3, cell*0.22));
+    ctx2d.fill();
+    if(head){
+      // eyes
+      ctx2d.fillStyle = '#05010f';
+      const ex = s.x*cell + cell/2, ey = s.y*cell + cell/2;
+      const d = cell*0.18;
+      let e1 = {x:ex - d*dir.y, y:ey + d*dir.x};
+      let e2 = {x:ex + d*dir.y, y:ey - d*dir.x};
+      e1.x += dir.x*cell*0.2; e1.y += dir.y*cell*0.2;
+      e2.x += dir.x*cell*0.2; e2.y += dir.y*cell*0.2;
+      ctx2d.beginPath(); ctx2d.arc(e1.x,e1.y,cell*0.08,0,Math.PI*2); ctx2d.fill();
+      ctx2d.beginPath(); ctx2d.arc(e2.x,e2.y,cell*0.08,0,Math.PI*2); ctx2d.fill();
+    }
+  });
+}
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath();
+}
+function endGame(){
+  running = false;
+  clearTimeout(tickTimer);
+  SFX.hit();
+  const newHigh = score > 0 && score >= hi && parseInt(localStorage.getItem(HS_KEY)||'0',10) <= score;
+  $('finalScore').textContent = score;
+  $('hsNote').innerHTML = (score>0 && score===hi) ? '🏆 שיא חדש!' : '&nbsp;';
+  gameOverShown = true;
+  setTimeout(()=>$('gameOver').classList.add('active'), 400);
+}
+
+/* ====== Input: D-pad + keyboard + swipe ====== */
+function setDir(d){
+  if(!running || paused) return;
+  const map = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} };
+  const nd = map[d]; if(!nd) return;
+  // reject direct reverse
+  if(nd.x === -dir.x && nd.y === -dir.y) return;
+  nextDir = nd;
+  SFX.click();
+}
+document.querySelectorAll('.dpad [data-dir]').forEach(b=>{
+  b.addEventListener('click', ()=> setDir(b.dataset.dir));
+});
+document.addEventListener('keydown', e=>{
+  const k = e.key;
+  if(k==='ArrowUp') setDir('up');
+  else if(k==='ArrowDown') setDir('down');
+  else if(k==='ArrowLeft') setDir('left');
+  else if(k==='ArrowRight') setDir('right');
+  else if(k===' '){ e.preventDefault(); boosting = true; }
+  else if(k==='p' || k==='P') togglePause();
+});
+document.addEventListener('keyup', e=>{ if(e.key===' ') boosting = false; });
+
+// Action button = boost (hold)
+const actionBtn = $('btnAction');
+const pressStart = ()=>{ boosting = true; actionBtn.style.filter='brightness(1.2)'; };
+const pressEnd   = ()=>{ boosting = false; actionBtn.style.filter=''; };
+actionBtn.addEventListener('touchstart', e=>{e.preventDefault();pressStart();}, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();pressEnd();},   {passive:false});
+actionBtn.addEventListener('mousedown', pressStart);
+actionBtn.addEventListener('mouseup',   pressEnd);
+actionBtn.addEventListener('mouseleave',pressEnd);
+
+// Swipe on play area
+(function(){
+  const play = document.querySelector('.play');
+  let sx=0, sy=0, tracking=false;
+  play.addEventListener('touchstart', e=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; tracking=true; }, {passive:true});
+  play.addEventListener('touchmove',  e=>{
+    if(!tracking) return;
+    const t=e.touches[0]; const dx=t.clientX-sx, dy=t.clientY-sy;
+    if(Math.abs(dx)>22 || Math.abs(dy)>22){
+      if(Math.abs(dx)>Math.abs(dy)) setDir(dx>0?'right':'left');
+      else setDir(dy>0?'down':'up');
+      tracking = false;
+    }
+  }, {passive:true});
+  play.addEventListener('touchend', ()=>tracking=false);
+})();
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

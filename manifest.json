@@ -1,0 +1,21 @@
+{
+  "name": "ARCADYA",
+  "short_name": "ARCADYA",
+  "description": "חבילת משחקי ארקייד קלאסיים — Snake, Pong, Pac-Man, Tetris ועוד",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05010f",
+  "theme_color": "#0b0320",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "assets/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — DONKEY KONG</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a; --neon-orange:#ff8a3d;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#ff8a3d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(255,138,61,.2),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(255,45,149,.15),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  .hud{position:relative;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-bottom:1px solid rgba(255,255,255,.06);z-index:5;}
+  .hud-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s;flex:0 0 auto;}
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+  .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .label{color:var(--muted);font-size:9px;letter-spacing:2px;}
+  .val{font-size:14px;font-weight:800;color:var(--accent);text-shadow:0 0 6px rgba(255,138,61,.55);}
+  .val.hi{color:var(--neon-yellow);}
+  .val.bonus{color:var(--neon-cyan);}
+  .lives{display:flex;gap:3px;}
+  .lives .jm{width:10px;height:14px;background:#ff2d95;box-shadow:0 0 5px #ff2d95;border-radius:2px;}
+  .hud-right{display:flex;gap:6px;}
+
+  .play{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04010e;}
+  canvas{display:block;max-width:100%;max-height:100%;}
+
+  .controls{position:relative;border-top:2px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0a0320,#050110);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;min-height:150px;}
+  .dpad{position:relative;width:150px;height:150px;justify-self:start;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);}
+  .dpad button{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .dpad button:active{transform:scale(.9);background:rgba(255,138,61,.3);}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;}
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;}
+  .action{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffcb8f,#ff8a3d 55%,#7a3c0f 100%);color:#1a0600;font-weight:900;font-size:16px;letter-spacing:2px;border:none;cursor:pointer;box-shadow:0 0 24px rgba(255,138,61,.55),inset 0 -6px 12px rgba(0,0,0,.3);transition:transform .08s;}
+  .action:active{transform:scale(.92);}
+
+  .overlay{position:absolute;inset:0;background:rgba(5,1,15,.85);display:none;align-items:center;justify-content:center;z-index:20;animation:fadeIn .15s ease-out;}
+  .overlay.active{display:flex;}
+  .overlay-box{width:82%;max-width:320px;text-align:center;background:linear-gradient(180deg,#1a0946,#0c0326);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 20px 20px;box-shadow:0 0 40px rgba(255,138,61,.3);}
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#ff8a3d,#ff2d95);color:#fff;box-shadow:0 6px 20px rgba(255,138,61,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .pause-label{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;background:rgba(5,1,15,.55);z-index:15;text-shadow:0 0 10px var(--neon-cyan);}
+  .pause-label.active{display:flex;}
+
+  .stage-banner{position:absolute;top:35%;left:0;right:0;text-align:center;font-size:26px;font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 14px var(--accent);display:none;z-index:4;pointer-events:none;}
+  .stage-banner.show{display:block;animation:banner 1.8s forwards;}
+  @keyframes banner{0%{opacity:0;transform:scale(.7);}20%{opacity:1;transform:scale(1);}80%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.1);}}
+
+  .opener{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);display:flex;align-items:center;justify-content:center;z-index:30;animation:openerFade 4s forwards;}
+  .opener .gm-name{font-size:clamp(38px,11vw,62px);font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-pink);animation:openerPulse 1s infinite alternate;text-align:center;line-height:1.02;}
+  @keyframes openerFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+  @keyframes openerPulse{from{transform:scale(.95);}to{transform:scale(1.05);}}
+
+  .gameover-box .big-score{font-size:44px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .note{color:var(--neon-cyan);font-size:13px;letter-spacing:2px;margin-bottom:4px;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">SCORE</div><div id="score" class="val">0</div></div>
+      <div class="score-group"><div class="label">HI</div><div id="hiscore" class="val hi">0</div></div>
+      <div class="score-group"><div class="label">BONUS</div><div id="bonus" class="val bonus">5000</div></div>
+      <div class="score-group"><div class="label">LIVES</div><div id="lives" class="lives"></div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="stageBanner" class="stage-banner">STAGE 1</div>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="d-up"    data-dir="up">▲</button>
+      <button class="d-right" data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left"  data-dir="left">◀</button>
+      <button class="d-down"  data-dir="down">▼</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btnAction" class="action">JUMP</button>
+    </div>
+  </div>
+
+  <div id="opener" class="opener"><div class="gm-name">DONKEY<br>KONG</div></div>
+
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameOver" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">סיום משחק</div>
+      <div id="finalScore" class="big-score">0</div>
+      <div id="goNote" class="note">&nbsp;</div>
+      <div id="hsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="playAgain" class="btn btn-yes">שחק שוב</button>
+        <button id="backHome"  class="btn btn-no">חזרה ל־ARCADYA</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const SFX = ARCADYA.makeSFX({
+  jump:     beep => { beep(600,0.06,'triangle',0.1); setTimeout(()=>beep(900,0.05,'triangle',0.08),50); },
+  jumpOver: beep => { beep(900,0.06,'triangle',0.12); setTimeout(()=>beep(1320,0.08,'triangle',0.12),60); },
+  throw:    beep => beep(340,0.08,'sawtooth',0.1),
+  die:      beep => { beep(220,0.2,'sawtooth',0.14); setTimeout(()=>beep(110,0.3,'sawtooth',0.14),200); },
+  win:      beep => { beep(440,0.08,'triangle',0.1); setTimeout(()=>beep(660,0.08,'triangle',0.1),80); setTimeout(()=>beep(880,0.1,'triangle',0.1),160); setTimeout(()=>beep(1320,0.16,'triangle',0.12),260); },
+  climb:    beep => beep(380,0.03,'square',0.05)
+});
+
+/* ====== Shell ====== */
+const HS_KEY = 'arcadya_dkong_high_score';
+const $ = id => document.getElementById(id);
+let paused=false, gameOverShown=false, running=false;
+
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(); }, 4000);
+
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+$('playAgain').addEventListener('click', ()=>{ SFX.click(); $('gameOver').classList.remove('active'); gameOverShown = false; startGame(); });
+$('backHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Stage layout ====== */
+const DESIGN_W = 320;
+const DESIGN_H = 560;
+const PLAT_THICKNESS = 8;
+const JM_W = 14, JM_H = 18;
+const BARREL_R = 8;
+
+// 6 platforms; top is the "goal" platform where Pauline stands
+// dir: barrel roll direction on this platform (+1 right, -1 left)
+// ends: (xLeft, xRight) — where barrels can fall off
+// leftY, rightY — slight slant for visual (small height diff)
+function buildPlatforms(){
+  const W = DESIGN_W;
+  return [
+    { y: 110, leftY: 108, rightY: 112, xLeft: 60,  xRight: W-20, dir: -1 },  // top — small, Pauline
+    { y: 180, leftY: 176, rightY: 184, xLeft: 20,  xRight: W-20, dir: +1 },
+    { y: 260, leftY: 264, rightY: 256, xLeft: 20,  xRight: W-20, dir: -1 },
+    { y: 340, leftY: 336, rightY: 344, xLeft: 20,  xRight: W-20, dir: +1 },
+    { y: 420, leftY: 424, rightY: 416, xLeft: 20,  xRight: W-20, dir: -1 },
+    { y: 510, leftY: 506, rightY: 514, xLeft: 20,  xRight: W-20, dir: +1 },  // bottom (start)
+  ];
+}
+function platformYAt(p, x){
+  const t = (x - p.xLeft) / (p.xRight - p.xLeft);
+  return p.leftY + (p.rightY - p.leftY) * clamp(t, 0, 1);
+}
+
+// Ladders connect two adjacent platforms.
+// Each: { upper: idx, lower: idx (upper+1), x, broken:false }
+function buildLadders(stage){
+  // Fixed arrangement per playthrough. Higher stages have a few broken ladders.
+  const ladders = [
+    // between platform 0 (top goal) and 1
+    { upper: 0, lower: 1, x: 100, broken: false },
+    // between 1 and 2
+    { upper: 1, lower: 2, x: 60,  broken: false },
+    { upper: 1, lower: 2, x: 220, broken: false },
+    // between 2 and 3
+    { upper: 2, lower: 3, x: 100, broken: false },
+    { upper: 2, lower: 3, x: 260, broken: false },
+    // between 3 and 4
+    { upper: 3, lower: 4, x: 60,  broken: false },
+    { upper: 3, lower: 4, x: 200, broken: false },
+    // between 4 and 5
+    { upper: 4, lower: 5, x: 100, broken: false },
+    { upper: 4, lower: 5, x: 260, broken: false },
+  ];
+  // Break a few ladders at stage 3+
+  if(stage >= 3){
+    ladders.forEach(l => { if(Math.random() < (stage-2)*0.1) l.broken = true; });
+    // ensure at least one non-broken ladder between every pair
+    for(let pair = 0; pair < 5; pair++){
+      const between = ladders.filter(l => l.upper === pair);
+      if(between.every(l => l.broken)) between[0].broken = false;
+    }
+  }
+  return ladders;
+}
+
+/* ====== Canvas ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  const ratio = DESIGN_W / DESIGN_H;
+  let w = pw, h = pw / ratio;
+  if(h > ph){ h = ph; w = ph * ratio; }
+  canvas.width = DESIGN_W; canvas.height = DESIGN_H;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); if(state) draw(); });
+
+/* ====== Game state ====== */
+let state;
+function startGame(){
+  fitCanvas();
+  const platforms = buildPlatforms();
+  state = {
+    stage: 1,
+    score: 0,
+    hi: parseInt(localStorage.getItem(HS_KEY)||'0',10),
+    bonus: 5000,
+    lives: 3,
+    platforms,
+    ladders: buildLadders(1),
+    barrels: [],
+    barrelTimer: 1500,      // first barrel 1.5s after start (ease-in)
+    barrelIntervalBase: 3000,
+    barrelSpeedBase: 1.2,
+    jumpman: makeJumpman(platforms),
+    status: 'playing',
+    statusUntil: 0,
+    highestPlatform: 5,      // reached so far (5 = bottom)
+    lastT: performance.now(),
+    bonusTickAcc: 0,
+    input: { left:false, right:false, up:false, down:false },
+    dkShakeT: 0
+  };
+  updateHud();
+  showBanner('STAGE 1');
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function makeJumpman(platforms){
+  const bottom = platforms[5];
+  const x = 40;
+  return {
+    x, y: platformYAt(bottom, x),
+    vx: 0, vy: 0,
+    mode: 'ground',        // ground | jumping | climbing
+    platIdx: 5,
+    ladder: null,
+    facing: 1,
+    jumpedBarrels: new Set()
+  };
+}
+
+function updateHud(){
+  const s = state;
+  $('score').textContent = s.score;
+  $('hiscore').textContent = Math.max(s.hi, s.score);
+  $('bonus').textContent = Math.max(0, s.bonus);
+  const lv = $('lives'); lv.innerHTML = '';
+  for(let i=0;i<s.lives;i++){ const d=document.createElement('div'); d.className='jm'; lv.appendChild(d); }
+}
+
+/* ====== Main loop ====== */
+function loop(now){
+  if(!running) return;
+  const dt = Math.min(48, now - state.lastT);
+  state.lastT = now;
+  if(!paused) update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt){
+  const s = state;
+
+  if(s.status === 'dying'){
+    if(performance.now() >= s.statusUntil){
+      if(s.lives <= 0){ endGame(); return; }
+      respawn();
+    }
+    return;
+  }
+  if(s.status === 'stageClear' || s.status === 'rescuing'){
+    if(performance.now() >= s.statusUntil) nextStage();
+    return;
+  }
+
+  // Bonus timer: lose 10 per second
+  s.bonusTickAcc += dt;
+  while(s.bonusTickAcc >= 1000){
+    s.bonusTickAcc -= 1000;
+    s.bonus -= 10;
+    if(s.bonus <= 0){ s.bonus = 0; die('זמן'); updateHud(); return; }
+    updateHud();
+  }
+
+  // DK shake
+  s.dkShakeT += dt;
+
+  // Spawn barrels
+  s.barrelTimer -= dt;
+  if(s.barrelTimer <= 0){
+    spawnBarrel();
+    // jitter ± 300 ms
+    const interval = s.barrelIntervalBase + (Math.random()*600 - 300);
+    s.barrelTimer = interval;
+    // stage 4+: chance for double throw
+    if(s.stage >= 4 && Math.random() < 0.25){
+      setTimeout(()=>{ if(s.status === 'playing') spawnBarrel(); }, 250);
+    }
+  }
+
+  // Barrels
+  for(const b of s.barrels){ updateBarrel(b, dt); }
+  s.barrels = s.barrels.filter(b => !b.dead);
+
+  // Jumpman
+  updateJumpman(dt);
+
+  // Collision with barrels
+  if(s.status === 'playing'){
+    const jm = s.jumpman;
+    for(const b of s.barrels){
+      const dx = b.x - jm.x;
+      const dy = b.y - (jm.y - JM_H/2);
+      if(Math.abs(dx) < BARREL_R + JM_W/2 - 2 && Math.abs(dy) < BARREL_R + JM_H/2 - 2){
+        die('חבית');
+        return;
+      }
+      // Jumped over?
+      if(jm.mode === 'jumping' && !jm.jumpedBarrels.has(b.id)){
+        if(b.y - jm.y < 2 && b.y - jm.y > -30 && Math.abs(dx) < 16){
+          jm.jumpedBarrels.add(b.id);
+          s.score += 100;
+          updateHud();
+          SFX.jumpOver();
+        }
+      }
+    }
+  }
+
+  // Reached Pauline?
+  if(s.status === 'playing' && s.jumpman.mode === 'ground' && s.jumpman.platIdx === 0 && s.jumpman.x > 230){
+    s.status = 'rescuing';
+    s.statusUntil = performance.now() + 2600;
+    s.rescueStart = performance.now();
+    // park jumpman right next to Pauline
+    s.jumpman.x = DESIGN_W - 78;
+    s.jumpman.facing = 1;
+    s.score += 1000 + Math.max(0, s.bonus);
+    updateHud();
+    SFX.win();
+    showBanner('הצלת אותה!');
+    return;
+  }
+}
+
+function spawnBarrel(){
+  const s = state;
+  const topPlat = s.platforms[0];
+  const startX = topPlat.xLeft + 30;
+  const b = {
+    id: Math.random(),
+    x: startX, y: platformYAt(topPlat, startX) - PLAT_THICKNESS/2 - BARREL_R,
+    vx: topPlat.dir * s.barrelSpeedBase,
+    vy: 0,
+    state: 'roll',     // roll | fall | climb-down
+    platIdx: 0,
+    rot: 0,
+    ladderTarget: null
+  };
+  s.barrels.push(b);
+  SFX.throw();
+}
+
+function updateBarrel(b, dt){
+  const s = state;
+  const g = 0.35;
+  b.rot += b.vx * 0.06;
+
+  if(b.state === 'fall'){
+    b.vy += g * (dt/16.67);
+    b.y += b.vy * (dt/16.67);
+    // Target the next platform down (so barrels always land even if they
+    // overshot the edge by a fraction of a pixel on the way off the slope).
+    const nextIdx = b.platIdx + 1;
+    if(nextIdx < s.platforms.length){
+      const p = s.platforms[nextIdx];
+      const landX = clamp(b.x, p.xLeft + 4, p.xRight - 4);
+      const py = platformYAt(p, landX) - PLAT_THICKNESS/2 - BARREL_R;
+      if(b.y >= py){
+        b.x = landX;
+        b.y = py; b.vy = 0;
+        b.platIdx = nextIdx;
+        b.state = 'roll';
+        b.vx = p.dir * (s.barrelSpeedBase + (nextIdx*0.05));
+      }
+    }
+    if(b.y > DESIGN_H + 30) b.dead = true;
+    return;
+  }
+
+  if(b.state === 'climb-down'){
+    b.y += 1.3 * (dt/16.67);
+    const ladder = b.ladderTarget;
+    const lower = s.platforms[ladder.lower];
+    const lowerY = platformYAt(lower, b.x) - PLAT_THICKNESS/2 - BARREL_R;
+    if(b.y >= lowerY){
+      b.y = lowerY;
+      b.state = 'roll';
+      b.platIdx = ladder.lower;
+      b.vx = lower.dir * (s.barrelSpeedBase + (ladder.lower*0.05));
+      b.ladderTarget = null;
+    }
+    return;
+  }
+
+  // rolling
+  b.x += b.vx * (dt/16.67);
+  const p = s.platforms[b.platIdx];
+  b.y = platformYAt(p, b.x) - PLAT_THICKNESS/2 - BARREL_R;
+
+  // Chance to go down a ladder (classic)
+  if(!b.ladderTarget){
+    for(const l of s.ladders){
+      if(l.broken) continue;
+      if(l.upper !== b.platIdx) continue;
+      if(Math.abs(b.x - l.x) < 4 && Math.random() < 0.18){
+        b.state = 'climb-down';
+        b.ladderTarget = l;
+        b.vx = 0;
+        return;
+      }
+    }
+  }
+
+  // fall off edge
+  if((p.dir > 0 && b.x > p.xRight) || (p.dir < 0 && b.x < p.xLeft)){
+    b.state = 'fall';
+    b.vy = 1;
+    // don't add 1 below - next platform check will find the correct one
+  }
+}
+
+function updateJumpman(dt){
+  const s = state;
+  const jm = s.jumpman;
+  const speed = 2.0;
+
+  // Handle climbing state first
+  if(jm.mode === 'climbing'){
+    if(s.input.up){
+      jm.y -= 1.4 * (dt/16.67);
+      SFX.climb();
+    } else if(s.input.down){
+      jm.y += 1.4 * (dt/16.67);
+      SFX.climb();
+    }
+    // Check reached upper platform
+    const l = jm.ladder;
+    const upperPlat = s.platforms[l.upper];
+    const lowerPlat = s.platforms[l.lower];
+    const upperY = platformYAt(upperPlat, jm.x);
+    const lowerY = platformYAt(lowerPlat, jm.x);
+    if(jm.y <= upperY){
+      jm.y = upperY;
+      jm.mode = 'ground';
+      jm.platIdx = l.upper;
+      jm.ladder = null;
+      onReachPlatform();
+    } else if(jm.y >= lowerY){
+      jm.y = lowerY;
+      jm.mode = 'ground';
+      jm.platIdx = l.lower;
+      jm.ladder = null;
+    }
+    // horizontal movement locked while climbing
+    return;
+  }
+
+  // Jumping
+  if(jm.mode === 'jumping'){
+    jm.vy += 0.36 * (dt/16.67);
+    jm.y += jm.vy * (dt/16.67);
+    jm.x += jm.vx * (dt/16.67);
+    jm.x = clamp(jm.x, 10, DESIGN_W - 10);
+    // land on platform?
+    if(jm.vy > 0){
+      for(let i=0;i<s.platforms.length;i++){
+        const p = s.platforms[i];
+        if(jm.x < p.xLeft || jm.x > p.xRight) continue;
+        const py = platformYAt(p, jm.x);
+        if(jm.y >= py && jm.y - jm.vy*(dt/16.67) <= py + 2){
+          jm.y = py; jm.vy = 0; jm.vx = 0;
+          jm.mode = 'ground';
+          jm.platIdx = i;
+          jm.jumpedBarrels.clear();
+          onReachPlatform();
+          break;
+        }
+      }
+    }
+    return;
+  }
+
+  // Ground movement
+  let moveX = 0;
+  if(s.input.left)  moveX = -1;
+  if(s.input.right) moveX = +1;
+  if(moveX !== 0) jm.facing = moveX;
+  jm.x += moveX * speed * (dt/16.67);
+  const p = s.platforms[jm.platIdx];
+  jm.x = clamp(jm.x, p.xLeft + 4, p.xRight - 4);
+  jm.y = platformYAt(p, jm.x);
+
+  // Ladder use (up/down)
+  if(s.input.up || s.input.down){
+    const ladder = findLadderNear(jm.x, jm.platIdx, s.input.up ? 'up' : 'down');
+    if(ladder){
+      jm.mode = 'climbing';
+      jm.ladder = ladder;
+      jm.x = ladder.x;
+      SFX.climb();
+    }
+  }
+}
+
+function findLadderNear(x, platIdx, dir){
+  for(const l of state.ladders){
+    if(l.broken) continue;
+    if(dir === 'up' && l.lower === platIdx){
+      if(Math.abs(x - l.x) < 10) return l;
+    }
+    if(dir === 'down' && l.upper === platIdx){
+      if(Math.abs(x - l.x) < 10) return l;
+    }
+  }
+  return null;
+}
+
+function onReachPlatform(){
+  const s = state;
+  const jm = s.jumpman;
+  if(jm.platIdx < s.highestPlatform){
+    s.score += 50 * (s.highestPlatform - jm.platIdx);
+    s.highestPlatform = jm.platIdx;
+    updateHud();
+  }
+}
+
+function doJump(){
+  const s = state;
+  if(!s || s.status !== 'playing') return;
+  const jm = s.jumpman;
+  if(jm.mode !== 'ground') return;
+  jm.mode = 'jumping';
+  jm.vy = -7.2;
+  jm.vx = 0;
+  if(s.input.left)  jm.vx = -2.2;
+  if(s.input.right) jm.vx = +2.2;
+  SFX.jump();
+}
+
+function die(reason){
+  const s = state;
+  if(s.status !== 'playing') return;
+  s.status = 'dying';
+  s.statusUntil = performance.now() + 1100;
+  s.lives--;
+  SFX.die();
+  updateHud();
+}
+
+function respawn(){
+  const s = state;
+  s.jumpman = makeJumpman(s.platforms);
+  s.highestPlatform = 5;
+  s.status = 'playing';
+}
+
+function nextStage(){
+  const s = state;
+  s.stage++;
+  s.bonus = 5000;
+  s.ladders = buildLadders(s.stage);
+  s.barrels = [];
+  s.highestPlatform = 5;
+  s.jumpman = makeJumpman(s.platforms);
+  // Gradual difficulty ramp — never too steep
+  s.barrelIntervalBase = Math.max(1400, 3000 - (s.stage-1)*200);
+  s.barrelSpeedBase    = Math.min(2.4,  1.2 + (s.stage-1)*0.12);
+  s.barrelTimer = 1600;
+  s.status = 'playing';
+  updateHud();
+  showBanner('STAGE ' + s.stage);
+}
+
+function endGame(){
+  running = false;
+  const s = state;
+  const prev = parseInt(localStorage.getItem(HS_KEY)||'0',10);
+  if(s.score > prev) localStorage.setItem(HS_KEY, s.score);
+  $('finalScore').textContent = s.score;
+  $('goNote').textContent = 'שלב ' + s.stage;
+  $('hsNote').innerHTML = (s.score > prev && s.score > 0) ? '🏆 שיא חדש!' : 'שיא: ' + prev;
+  gameOverShown = true;
+  setTimeout(()=>$('gameOver').classList.add('active'), 500);
+}
+
+function showBanner(text){
+  const el = $('stageBanner');
+  el.textContent = text;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 1800);
+}
+
+/* ====== Drawing ====== */
+function draw(){
+  ctx2d.fillStyle = '#04010e';
+  ctx2d.fillRect(0,0,DESIGN_W,DESIGN_H);
+
+  // Structure pillars (visual)
+  ctx2d.fillStyle = 'rgba(255,138,61,0.08)';
+  for(let x=0;x<DESIGN_W;x+=80) ctx2d.fillRect(x, 60, 2, DESIGN_H-80);
+
+  // Platforms
+  for(const p of state.platforms){
+    ctx2d.fillStyle = '#ff8a3d';
+    ctx2d.shadowColor = '#ff8a3d'; ctx2d.shadowBlur = 8;
+    ctx2d.beginPath();
+    ctx2d.moveTo(p.xLeft, p.leftY - PLAT_THICKNESS/2);
+    ctx2d.lineTo(p.xRight, p.rightY - PLAT_THICKNESS/2);
+    ctx2d.lineTo(p.xRight, p.rightY + PLAT_THICKNESS/2);
+    ctx2d.lineTo(p.xLeft, p.leftY + PLAT_THICKNESS/2);
+    ctx2d.closePath();
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    // rivets
+    ctx2d.fillStyle = '#ffd0a0';
+    for(let rx=p.xLeft+8; rx < p.xRight-4; rx+=20){
+      const py = platformYAt(p, rx);
+      ctx2d.fillRect(rx-1, py-1, 2, 2);
+    }
+  }
+
+  // Ladders
+  for(const l of state.ladders){
+    const upperP = state.platforms[l.upper];
+    const lowerP = state.platforms[l.lower];
+    const y1 = platformYAt(upperP, l.x);
+    const y2 = platformYAt(lowerP, l.x);
+    ctx2d.strokeStyle = l.broken ? 'rgba(255,233,74,0.35)' : '#ffe94a';
+    ctx2d.lineWidth = 2;
+    // rails
+    ctx2d.beginPath(); ctx2d.moveTo(l.x-5, y1); ctx2d.lineTo(l.x-5, y2); ctx2d.stroke();
+    ctx2d.beginPath(); ctx2d.moveTo(l.x+5, y1); ctx2d.lineTo(l.x+5, y2); ctx2d.stroke();
+    // rungs
+    const rungs = Math.floor((y2 - y1)/10);
+    for(let i=1;i<rungs;i++){
+      const ry = y1 + (y2-y1)*(i/rungs);
+      if(l.broken && (i%2 === 0)) continue; // missing rungs
+      ctx2d.beginPath(); ctx2d.moveTo(l.x-5, ry); ctx2d.lineTo(l.x+5, ry); ctx2d.stroke();
+    }
+  }
+
+  // DK (top-left area, above platform 0)
+  drawDK(50, 80);
+  // Pauline (top-right area, above platform 0)
+  drawPauline(DESIGN_W - 60, 92);
+
+  // Barrels
+  for(const b of state.barrels){
+    drawBarrel(b.x, b.y, b.rot);
+  }
+
+  // Jumpman
+  if(state.status !== 'dying' || Math.floor(performance.now()/80)%2 === 0){
+    drawJumpman(state.jumpman);
+  }
+
+  // Rescue heart animation
+  if(state.status === 'rescuing'){
+    const elapsed = performance.now() - state.rescueStart;
+    const t = Math.min(1, elapsed / 2600);
+    const heartX = (state.jumpman.x + (DESIGN_W - 60)) / 2;  // midway between them
+    const heartY = 92 - t*54;                                 // floats upward
+    const pulse = 12 + Math.sin(elapsed/120)*2;
+    drawHeart(heartX, heartY, pulse, 1 - t*0.3);
+  }
+}
+
+function drawHeart(cx, cy, size, alpha){
+  const s = size;
+  ctx2d.save();
+  ctx2d.globalAlpha = alpha;
+  ctx2d.fillStyle = '#ff4a6b';
+  ctx2d.shadowColor = '#ff4a6b'; ctx2d.shadowBlur = 14;
+  ctx2d.beginPath();
+  ctx2d.arc(cx - s*0.4, cy - s*0.15, s*0.5, 0, Math.PI*2); ctx2d.fill();
+  ctx2d.beginPath();
+  ctx2d.arc(cx + s*0.4, cy - s*0.15, s*0.5, 0, Math.PI*2); ctx2d.fill();
+  ctx2d.beginPath();
+  ctx2d.moveTo(cx - s*0.85, cy + s*0.05);
+  ctx2d.lineTo(cx, cy + s);
+  ctx2d.lineTo(cx + s*0.85, cy + s*0.05);
+  ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.restore();
+  ctx2d.shadowBlur = 0;
+}
+
+function drawDK(cx, cy){
+  const sh = Math.sin(state.dkShakeT/200) * 1.5;
+  ctx2d.save();
+  ctx2d.translate(cx + sh, cy);
+  // body
+  ctx2d.fillStyle = '#6b3a1a';
+  ctx2d.fillRect(-16, -16, 32, 30);
+  ctx2d.fillStyle = '#c79a6a';
+  ctx2d.fillRect(-12, -4, 24, 12);  // chest
+  // head
+  ctx2d.fillStyle = '#6b3a1a';
+  ctx2d.beginPath(); ctx2d.arc(0, -20, 10, 0, Math.PI*2); ctx2d.fill();
+  ctx2d.fillStyle = '#fff';
+  ctx2d.fillRect(-5, -22, 3, 3); ctx2d.fillRect(2, -22, 3, 3);
+  ctx2d.fillStyle = '#000';
+  ctx2d.fillRect(-4, -21, 1, 1); ctx2d.fillRect(3, -21, 1, 1);
+  // arms
+  ctx2d.fillStyle = '#6b3a1a';
+  ctx2d.fillRect(-20, -10, 6, 14);
+  ctx2d.fillRect( 14, -10, 6, 14);
+  ctx2d.restore();
+}
+
+function drawPauline(cx, cy){
+  ctx2d.save();
+  ctx2d.translate(cx, cy);
+  // dress
+  ctx2d.fillStyle = '#ff2d95';
+  ctx2d.fillRect(-7, -4, 14, 16);
+  // head
+  ctx2d.fillStyle = '#ffd0a0';
+  ctx2d.beginPath(); ctx2d.arc(0, -10, 6, 0, Math.PI*2); ctx2d.fill();
+  // hair
+  ctx2d.fillStyle = '#8a3d1f';
+  ctx2d.fillRect(-6, -16, 12, 4);
+  // arms
+  ctx2d.fillStyle = '#ffd0a0';
+  ctx2d.fillRect(-9, -4, 3, 8);
+  ctx2d.fillRect( 6, -4, 3, 8);
+  ctx2d.restore();
+}
+
+function drawBarrel(cx, cy, rot){
+  ctx2d.save();
+  ctx2d.translate(cx, cy);
+  ctx2d.rotate(rot);
+  ctx2d.fillStyle = '#b65f1f';
+  ctx2d.shadowColor = '#b65f1f'; ctx2d.shadowBlur = 6;
+  ctx2d.beginPath();
+  ctx2d.arc(0,0, BARREL_R, 0, Math.PI*2);
+  ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+  ctx2d.strokeStyle = '#3d1a00';
+  ctx2d.lineWidth = 1.5;
+  ctx2d.beginPath(); ctx2d.moveTo(-BARREL_R, 0); ctx2d.lineTo(BARREL_R, 0); ctx2d.stroke();
+  ctx2d.beginPath(); ctx2d.moveTo(0, -BARREL_R); ctx2d.lineTo(0, BARREL_R); ctx2d.stroke();
+  ctx2d.restore();
+}
+
+function drawJumpman(jm){
+  const cx = jm.x, cy = jm.y - JM_H/2;
+  ctx2d.save();
+  ctx2d.translate(cx, cy);
+  // body
+  ctx2d.fillStyle = '#ff2d95';
+  ctx2d.fillRect(-JM_W/2, -2, JM_W, 10);
+  // overalls
+  ctx2d.fillStyle = '#4a7bff';
+  ctx2d.fillRect(-JM_W/2, 2, JM_W, 6);
+  // head
+  ctx2d.fillStyle = '#ffd0a0';
+  ctx2d.fillRect(-5, -9, 10, 8);
+  // cap
+  ctx2d.fillStyle = '#ff2d95';
+  ctx2d.fillRect(-6, -12, 12, 4);
+  ctx2d.fillRect(jm.facing > 0 ? 4 : -10, -11, 6, 2);
+  // feet
+  ctx2d.fillStyle = '#3d1a00';
+  ctx2d.fillRect(-JM_W/2, 8, 5, 3);
+  ctx2d.fillRect( JM_W/2 - 5, 8, 5, 3);
+  ctx2d.restore();
+}
+
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+/* ====== Input ====== */
+function setMove(dir, on){
+  if(!state) return;
+  if(dir === 'left')  state.input.left  = on;
+  if(dir === 'right') state.input.right = on;
+  if(dir === 'up')    state.input.up    = on;
+  if(dir === 'down')  state.input.down  = on;
+}
+
+document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+  const dir = btn.dataset.dir;
+  const down = e => { e.preventDefault(); setMove(dir, true); SFX.click(); };
+  const up   = e => { e.preventDefault(); setMove(dir, false); };
+  btn.addEventListener('touchstart', down, {passive:false});
+  btn.addEventListener('touchend',   up,   {passive:false});
+  btn.addEventListener('touchcancel',up,   {passive:false});
+  btn.addEventListener('mousedown', down);
+  btn.addEventListener('mouseup',   up);
+  btn.addEventListener('mouseleave',up);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+document.addEventListener('keydown', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowLeft')  setMove('left', true);
+  else if(e.key === 'ArrowRight') setMove('right', true);
+  else if(e.key === 'ArrowUp')    setMove('up', true);
+  else if(e.key === 'ArrowDown')  setMove('down', true);
+  else if(e.key === ' ')          { e.preventDefault(); doJump(); }
+  else if(e.key === 'p' || e.key === 'P') togglePause();
+});
+document.addEventListener('keyup', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowLeft')  setMove('left', false);
+  if(e.key === 'ArrowRight') setMove('right', false);
+  if(e.key === 'ArrowUp')    setMove('up', false);
+  if(e.key === 'ArrowDown')  setMove('down', false);
+});
+
+const actionBtn = $('btnAction');
+function actionPress(e){ if(e) e.preventDefault(); doJump(); actionBtn.style.filter='brightness(1.2)'; }
+function actionRelease(){ actionBtn.style.filter=''; }
+actionBtn.addEventListener('touchstart', actionPress, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();actionRelease();}, {passive:false});
+actionBtn.addEventListener('mousedown', actionPress);
+actionBtn.addEventListener('mouseup',   actionRelease);
+actionBtn.addEventListener('mouseleave',actionRelease);
+actionBtn.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

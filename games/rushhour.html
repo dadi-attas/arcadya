@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — RUSH HOUR</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a; --neon-orange:#ff8a3d;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#ff8a3d;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(255,138,61,.18),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(255,45,149,.15),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  .hud{position:relative;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-bottom:1px solid rgba(255,255,255,.06);z-index:5;}
+  .hud-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s;flex:0 0 auto;}
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+  .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .label{color:var(--muted);font-size:9px;letter-spacing:2px;}
+  .val{font-size:14px;font-weight:800;color:var(--accent);text-shadow:0 0 6px rgba(255,138,61,.55);}
+  .val.lv{color:var(--neon-cyan);}
+  .val.hi{color:var(--neon-yellow);}
+  .val.hint{color:var(--neon-pink);}
+  .hud-right{display:flex;gap:6px;}
+
+  .play{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04010e;}
+  canvas{display:block;max-width:100%;max-height:100%;}
+
+  .controls{position:relative;border-top:2px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0a0320,#050110);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;min-height:150px;}
+  .dpad{position:relative;width:150px;height:150px;justify-self:start;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);}
+  .dpad button{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .dpad button:active{transform:scale(.9);background:rgba(255,138,61,.3);}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;}
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;position:relative;}
+  .action{
+    width:96px;height:96px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#ffcb8f,#ff8a3d 55%,#7a3c0f 100%);
+    color:#1a0600;font-weight:900;font-size:14px;letter-spacing:1px;border:none;cursor:pointer;
+    box-shadow:0 0 24px rgba(255,138,61,.55),inset 0 -6px 12px rgba(0,0,0,.3);
+    transition:transform .08s;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    line-height:1.05;
+  }
+  .action .sub{font-size:9px;opacity:.7;letter-spacing:0px;margin-top:2px;}
+  .action.idle-pulse{animation:idlePulse 1.4s infinite;}
+  .action:active{transform:scale(.92);}
+  @keyframes idlePulse{0%,100%{box-shadow:0 0 24px rgba(255,138,61,.55),inset 0 -6px 12px rgba(0,0,0,.3);}50%{box-shadow:0 0 36px rgba(255,233,74,.85),inset 0 -6px 12px rgba(0,0,0,.3);}}
+  .hold-ring{position:absolute;inset:-4px;width:104px;height:104px;border-radius:50%;pointer-events:none;}
+
+  .overlay{position:absolute;inset:0;background:rgba(5,1,15,.85);display:none;align-items:center;justify-content:center;z-index:20;animation:fadeIn .15s ease-out;}
+  .overlay.active{display:flex;}
+  .overlay-box{width:82%;max-width:320px;text-align:center;background:linear-gradient(180deg,#1a0946,#0c0326);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 20px 20px;box-shadow:0 0 40px rgba(255,138,61,.3);}
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#ff8a3d,#ff2d95);color:#fff;box-shadow:0 6px 20px rgba(255,138,61,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .btn-mid{background:rgba(0,230,255,0.15);color:#fff;border-color:rgba(0,230,255,0.4);}
+  .pause-label{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;background:rgba(5,1,15,.55);z-index:15;text-shadow:0 0 10px var(--neon-cyan);}
+  .pause-label.active{display:flex;}
+
+  .level-banner{position:absolute;top:30%;left:0;right:0;text-align:center;font-size:24px;font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 14px var(--accent);display:none;z-index:4;pointer-events:none;}
+  .level-banner.show{display:block;animation:banner 1.6s forwards;}
+  @keyframes banner{0%{opacity:0;transform:scale(.7);}20%{opacity:1;transform:scale(1);}80%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(1.1);}}
+
+  .toast{position:absolute;bottom:14px;left:14px;right:14px;
+    background:rgba(20,8,40,0.9);border:1px solid rgba(255,138,61,0.5);
+    border-radius:12px;padding:10px 14px;color:#fff;font-size:13px;text-align:center;
+    z-index:8;display:none;box-shadow:0 4px 18px rgba(0,0,0,0.5);}
+  .toast.show{display:block;animation:toastIn .3s;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+
+  .opener{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);display:flex;align-items:center;justify-content:center;z-index:30;animation:openerFade 4s forwards;}
+  .opener .gm-name{font-size:clamp(38px,11vw,58px);font-weight:900;letter-spacing:4px;color:#fff;text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-pink);animation:openerPulse 1s infinite alternate;text-align:center;line-height:1.05;}
+  @keyframes openerFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+  @keyframes openerPulse{from{transform:scale(.95);}to{transform:scale(1.05);}}
+
+  .gameover-box .big-score{font-size:36px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .note{color:var(--neon-cyan);font-size:13px;letter-spacing:2px;margin-bottom:4px;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">LEVEL</div><div id="level" class="val lv">1</div></div>
+      <div class="score-group"><div class="label">MOVES</div><div id="moves" class="val">0</div></div>
+      <div class="score-group"><div class="label">HINTS</div><div id="hints" class="val hint">0</div></div>
+      <div class="score-group"><div class="label">BEST</div><div id="best" class="val hi">—</div></div>
+      <div class="score-group"><div class="label">TIME</div><div id="time" class="val">0</div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnReset" class="hud-btn" aria-label="אפס">↺</button>
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="levelBanner" class="level-banner">LEVEL 1</div>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+    <div id="toast" class="toast">תקוע? החזק את הכפתור העגול לרמז (+3 מהלכים)</div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="d-up"    data-dir="up">▲</button>
+      <button class="d-right" data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left"  data-dir="left">◀</button>
+      <button class="d-down"  data-dir="down">▼</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btnAction" class="action">
+        <span id="actLabel">SELECT</span>
+        <span id="actSub" class="sub">HOLD: HINT</span>
+      </button>
+      <canvas id="holdRing" class="hold-ring" width="104" height="104"></canvas>
+    </div>
+  </div>
+
+  <div id="opener" class="opener"><div class="gm-name">RUSH<br>HOUR</div></div>
+
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="resetModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לאפס את השלב?</div>
+      <div class="overlay-actions">
+        <button id="resetYes" class="btn btn-yes">כן</button>
+        <button id="resetNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="winModal" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">פתרת!</div>
+      <div id="winMoves" class="big-score">0 מהלכים</div>
+      <div id="winNote" class="note">&nbsp;</div>
+      <div id="winHsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="nextLevel" class="btn btn-yes">שלב הבא</button>
+        <button id="winRetry" class="btn btn-mid">נסה שוב</button>
+        <button id="winHome"  class="btn btn-no">חזרה</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="finishedModal" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">פתרת הכל! 🏆</div>
+      <div class="big-score">סיימת את כל השלבים</div>
+      <div class="hs-note">כל הכבוד!</div>
+      <div class="go-actions">
+        <button id="finRestart" class="btn btn-yes">התחל מהתחלה</button>
+        <button id="finHome"  class="btn btn-no">חזרה</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const SFX = ARCADYA.makeSFX({
+  select: beep => beep(660,0.04,'triangle',0.1),
+  move:   beep => { beep(420,0.04,'square',0.06); setTimeout(()=>beep(540,0.04,'square',0.05),30); },
+  bump:   beep => beep(180,0.07,'square',0.1),
+  hint:   beep => { beep(880,0.06,'triangle',0.1); setTimeout(()=>beep(1320,0.08,'triangle',0.1),60); },
+  horn:   beep => {
+    beep(520, 0.18, 'square', 0.14); beep(390, 0.18, 'square', 0.10);
+    setTimeout(()=>{ beep(520, 0.22, 'square', 0.14); beep(390, 0.22, 'square', 0.10); }, 220);
+  },
+  win:    beep => { [0,1,2,3].forEach(i => setTimeout(()=>beep(660+i*220,0.1,'triangle',0.13),i*100)); }
+});
+
+/* ====== Shell ====== */
+const $ = id => document.getElementById(id);
+let paused=false, gameOverShown=false, running=false;
+
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(1); }, 4000);
+
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+$('btnReset').addEventListener('click', ()=>{ SFX.click(); $('resetModal').classList.add('active'); if(!paused) togglePause(); });
+$('resetNo').addEventListener('click', ()=>{ SFX.click(); $('resetModal').classList.remove('active'); if(paused) togglePause(); });
+$('resetYes').addEventListener('click', ()=>{ SFX.click(); $('resetModal').classList.remove('active'); paused = false; $('pauseLabel').classList.remove('active'); $('btnPause').textContent = '⏸'; startGame(state.level); });
+
+$('nextLevel').addEventListener('click', ()=>{ SFX.click(); $('winModal').classList.remove('active'); gameOverShown = false; const next = Math.min(state.level + 1, LEVELS_RAW.length); if(state.level >= LEVELS_RAW.length){ $('finishedModal').classList.add('active'); return; } startGame(next); });
+$('winRetry').addEventListener('click', ()=>{ SFX.click(); $('winModal').classList.remove('active'); gameOverShown = false; startGame(state.level); });
+$('winHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+$('finRestart').addEventListener('click', ()=>{ SFX.click(); $('finishedModal').classList.remove('active'); gameOverShown = false; startGame(1); });
+$('finHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Levels (6×6 grid, exit at row 2 right side) ======
+   X = the player's red car (always horizontal length 2 on row 2)
+   A-K = other cars (length determined from grid, orientation by adjacent cells)
+   . = empty                                                               */
+const LEVELS_RAW = [
+  // 1 — trivial: just slide right (4 moves)
+  ["......",
+   "......",
+   "XX....",
+   "......",
+   "......",
+   "......"],
+  // 2 — single vertical blocker (5 moves)
+  ["......",
+   "......",
+   "XX.A..",
+   "...A..",
+   "......",
+   "......"],
+  // 3 — two blockers, one ahead one behind (~7 moves)
+  [".B....",
+   ".B.A..",
+   "XX.A..",
+   "......",
+   "......",
+   "......"],
+  // 4 — vertical chain, simple
+  ["..A...",
+   "..A.B.",
+   "XX..B.",
+   "....C.",
+   "....C.",
+   "......"],
+  // 5 — needs reshuffling
+  ["AA....",
+   "..B.CC",
+   "XXB...",
+   "...DDD",
+   "......",
+   "......"],
+  // 6 — medium
+  ["AA.B..",
+   "...B..",
+   "XX..C.",
+   ".DD.C.",
+   "......",
+   "....EE"],
+  // 7 — medium-hard
+  ["..AABB",
+   "..C...",
+   "XXC...",
+   ".DD.E.",
+   "....E.",
+   "FF..GG"],
+  // 8 — harder
+  [".AABCC",
+   "...B..",
+   "XX.B..",
+   "DD.EE.",
+   "......",
+   "..FFGG"],
+  // 9 — needs more reshuffles
+  ["AABB.C",
+   ".....C",
+   "XX..DD",
+   ".EFFGG",
+   ".E....",
+   "HH.III"],
+  // 10 — tricky
+  ["AA.BCC",
+   "...B..",
+   "XXDB.E",
+   "..D..E",
+   ".FFGGE",
+   "....HH"],
+];
+
+const N = 6;        // grid size
+const CELL = 50;    // pixel size per cell
+const BOARD_X = 16;
+const BOARD_Y = 30;
+const DESIGN_W = BOARD_X*2 + CELL*N;     // 332
+const DESIGN_H = BOARD_Y + CELL*N + 20;  // 350
+
+const HOLD_FOR_HINT = 500;
+const HINT_PENALTY = 3;
+const IDLE_HINT_TUTORIAL = 15000;     // ms before showing first-time hint tip
+const IDLE_PULSE = 30000;             // ms before pulsing action button as reminder
+
+/* ====== Parse a level into car definitions ====== */
+function parseLevel(rawGrid){
+  const cells = {};
+  for(let y=0;y<N;y++){
+    for(let x=0;x<N;x++){
+      const ch = rawGrid[y][x];
+      if(ch === '.') continue;
+      if(!cells[ch]) cells[ch] = [];
+      cells[ch].push([x, y]);
+    }
+  }
+  const cars = [];
+  for(const letter of Object.keys(cells)){
+    const positions = cells[letter];
+    let minX = N, minY = N, maxX = -1, maxY = -1;
+    for(const [x,y] of positions){
+      if(x<minX) minX=x; if(x>maxX) maxX=x;
+      if(y<minY) minY=y; if(y>maxY) maxY=y;
+    }
+    const length = positions.length;
+    const orient = (maxX > minX) ? 'h' : 'v';
+    const isPlayer = (letter === 'X');
+    cars.push({ id: letter, x: minX, y: minY, length, orient, isPlayer });
+  }
+  // Sort: player car first, then alpha
+  cars.sort((a,b)=> a.isPlayer ? -1 : b.isPlayer ? 1 : a.id.localeCompare(b.id));
+  return cars;
+}
+
+function carColor(car){
+  if(car.isPlayer) return '#ff4a6b';
+  const palette = ['#4a7bff','#3dff9a','#ffe94a','#ff8a3d','#b14bff','#00e6ff','#ff9eb1','#a3e635','#fb923c','#c084fc','#7dd3fc','#fde047'];
+  const idx = (car.id.charCodeAt(0) - 65) % palette.length;
+  return palette[idx];
+}
+
+/* ====== BFS solver — returns array of {carIndex, dir} for optimal solution ====== */
+function solve(cars){
+  // Positions stored as flat array: [x0,y0, x1,y1, ...]
+  const initial = [];
+  for(const c of cars){ initial.push(c.x, c.y); }
+  if(isWinPositions(initial, cars)) return [];
+
+  const visited = new Set();
+  const initStr = initial.join(',');
+  visited.add(initStr);
+  const queue = [{positions: initial, path: []}];
+  const MAX_ITER = 80000;
+  let iter = 0;
+
+  while(queue.length && iter++ < MAX_ITER){
+    const {positions, path} = queue.shift();
+    for(let ci = 0; ci < cars.length; ci++){
+      for(const dir of [-1, 1]){
+        const np = tryMove(positions, ci, dir, cars);
+        if(!np) continue;
+        const key = np.join(',');
+        if(visited.has(key)) continue;
+        visited.add(key);
+        const newPath = path.concat([{carIndex: ci, dir}]);
+        if(isWinPositions(np, cars)) return newPath;
+        queue.push({positions: np, path: newPath});
+      }
+    }
+  }
+  return null;
+}
+
+function tryMove(positions, ci, dir, cars){
+  const car = cars[ci];
+  const x = positions[ci*2], y = positions[ci*2+1];
+  const dx = car.orient === 'h' ? dir : 0;
+  const dy = car.orient === 'v' ? dir : 0;
+  const nx = x + dx, ny = y + dy;
+  // Bounds (player exit is special — handled in isWinPositions, not here)
+  if(car.orient === 'h'){
+    if(nx < 0 || nx + car.length > N) return null;
+  } else {
+    if(ny < 0 || ny + car.length > N) return null;
+  }
+  // Build occupation grid for collision check
+  const occupied = new Uint8Array(N*N);
+  for(let cj = 0; cj < cars.length; cj++){
+    if(cj === ci) continue;
+    const c2 = cars[cj];
+    const x2 = positions[cj*2], y2 = positions[cj*2+1];
+    for(let i=0;i<c2.length;i++){
+      if(c2.orient === 'h') occupied[(y2)*N + (x2+i)] = 1;
+      else occupied[(y2+i)*N + (x2)] = 1;
+    }
+  }
+  // Check new car cells
+  for(let i=0;i<car.length;i++){
+    const cx = car.orient === 'h' ? nx+i : nx;
+    const cy = car.orient === 'h' ? ny : ny+i;
+    if(occupied[cy*N + cx]) return null;
+  }
+  // Build new positions
+  const np = positions.slice();
+  np[ci*2] = nx; np[ci*2+1] = ny;
+  return np;
+}
+
+function isWinPositions(positions, cars){
+  // Player car (index 0 since we sorted player first) at row 2, must reach right edge
+  const player = cars[0];
+  const x = positions[0];
+  return player.isPlayer && x + player.length >= N;
+}
+
+/* ====== Canvas ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  const ratio = DESIGN_W / DESIGN_H;
+  let w = pw, h = pw / ratio;
+  if(h > ph){ h = ph; w = ph * ratio; }
+  canvas.width = DESIGN_W; canvas.height = DESIGN_H;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); if(state) draw(); });
+
+/* ====== Game state ====== */
+let state;
+function startGame(level){
+  fitCanvas();
+  const raw = LEVELS_RAW[(level-1) % LEVELS_RAW.length];
+  const cars = parseLevel(raw);
+  // Move player car (X) to the front (already sorted by parseLevel)
+  state = {
+    level,
+    cars,
+    selectedCarIndex: -1,
+    cursor: { x: cars[0].x, y: cars[0].y },     // start cursor on player car
+    moves: 0,
+    hintsUsed: 0,
+    timeMs: 0,
+    won: false,
+    holding: false,
+    holdStart: 0,
+    hintFlash: { carIndex: -1, until: 0 },
+    lastT: performance.now(),
+    lastInteractionT: performance.now(),
+    tutorialShown: localStorage.getItem('arcadya_rushhour_hint_tutorial_shown') === 'true',
+    pulseActive: false
+  };
+  hideToast();
+  $('btnAction').classList.remove('idle-pulse');
+  updateActionLabel();
+  updateHud();
+  showBanner('LEVEL ' + level);
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function bestKey(level){ return 'arcadya_rushhour_best_L' + level; }
+function bestPureKey(level){ return 'arcadya_rushhour_bestpure_L' + level; }
+function getBest(level){
+  const b = parseInt(localStorage.getItem(bestKey(level)) || '0', 10);
+  const bp = parseInt(localStorage.getItem(bestPureKey(level)) || '0', 10);
+  return { best: b, bestPure: bp };
+}
+
+function updateHud(){
+  $('level').textContent = state.level;
+  $('moves').textContent = state.moves;
+  $('hints').textContent = state.hintsUsed;
+  $('time').textContent = Math.floor(state.timeMs/1000);
+  const b = getBest(state.level);
+  if(b.bestPure > 0) $('best').textContent = b.bestPure + '★';
+  else if(b.best > 0) $('best').textContent = b.best;
+  else $('best').textContent = '—';
+}
+
+function updateActionLabel(){
+  if(state.selectedCarIndex < 0){
+    $('actLabel').textContent = 'SELECT';
+    $('actSub').textContent = 'HOLD: HINT';
+  } else {
+    $('actLabel').textContent = 'DESELECT';
+    $('actSub').textContent = 'ARROWS: MOVE';
+  }
+}
+
+function showBanner(text){
+  const el = $('levelBanner');
+  el.textContent = text;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=> el.classList.remove('show'), 1600);
+}
+
+function showToast(text){
+  const t = $('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(()=> t.classList.remove('show'), 5500);
+}
+function hideToast(){ $('toast').classList.remove('show'); }
+
+/* ====== Game logic ====== */
+function carAt(x, y){
+  for(let i=0;i<state.cars.length;i++){
+    const c = state.cars[i];
+    for(let k=0;k<c.length;k++){
+      const cx = c.orient === 'h' ? c.x+k : c.x;
+      const cy = c.orient === 'h' ? c.y : c.y+k;
+      if(cx === x && cy === y) return i;
+    }
+  }
+  return -1;
+}
+
+function canMove(ci, dir){
+  const c = state.cars[ci];
+  const dx = c.orient === 'h' ? dir : 0;
+  const dy = c.orient === 'v' ? dir : 0;
+  const nx = c.x + dx, ny = c.y + dy;
+  // Check bounds — except player car can exit right when at row 2
+  if(c.orient === 'h'){
+    if(nx < 0) return false;
+    if(nx + c.length > N){
+      // Player exits!
+      if(c.isPlayer && c.y === 2) return true;
+      return false;
+    }
+  } else {
+    if(ny < 0 || ny + c.length > N) return false;
+  }
+  // Collision check
+  for(let cj = 0; cj < state.cars.length; cj++){
+    if(cj === ci) continue;
+    const o = state.cars[cj];
+    for(let k=0;k<c.length;k++){
+      const ax = c.orient === 'h' ? nx+k : nx;
+      const ay = c.orient === 'h' ? ny : ny+k;
+      for(let m=0;m<o.length;m++){
+        const ox = o.orient === 'h' ? o.x+m : o.x;
+        const oy = o.orient === 'h' ? o.y : o.y+m;
+        if(ax === ox && ay === oy) return false;
+      }
+    }
+  }
+  return true;
+}
+
+function moveSelected(dir){
+  const ci = state.selectedCarIndex;
+  if(ci < 0) return false;
+  const c = state.cars[ci];
+  if(!canMove(ci, dir)) { SFX.bump(); return false; }
+  const dx = c.orient === 'h' ? dir : 0;
+  const dy = c.orient === 'v' ? dir : 0;
+  c.x += dx;
+  c.y += dy;
+  state.moves++;
+  state.lastInteractionT = performance.now();
+  $('btnAction').classList.remove('idle-pulse');
+  hideToast();
+  SFX.move();
+  updateHud();
+  // Win = the player car has reached/passed the right edge.
+  // Trigger a slide-out animation; handleWin runs after the animation.
+  if(c.isPlayer && c.x + c.length >= N){
+    state.exitAnim = { offset: 0, speed: 4 / CELL };  // cells per frame
+    state.selectedCarIndex = -1;
+    updateActionLabel();
+    SFX.horn();
+  }
+  return true;
+}
+
+function handleWin(){
+  state.won = true;
+  running = false;
+  // Save bests
+  const b = getBest(state.level);
+  if(b.best === 0 || state.moves < b.best){
+    localStorage.setItem(bestKey(state.level), state.moves);
+  }
+  if(state.hintsUsed === 0){
+    if(b.bestPure === 0 || state.moves < b.bestPure){
+      localStorage.setItem(bestPureKey(state.level), state.moves);
+    }
+  }
+  // Save max-level reached
+  const maxLevel = parseInt(localStorage.getItem('arcadya_rushhour_max_level') || '1', 10);
+  if(state.level >= maxLevel) localStorage.setItem('arcadya_rushhour_max_level', state.level + 1);
+  SFX.win();
+  setTimeout(()=>{
+    $('winMoves').textContent = state.moves + ' מהלכים';
+    const newB = getBest(state.level);
+    let note = 'זמן: ' + Math.floor(state.timeMs/1000) + ' שנ׳';
+    if(state.hintsUsed > 0) note += ' · ' + state.hintsUsed + ' רמזים (+' + (state.hintsUsed*HINT_PENALTY) + ')';
+    $('winNote').textContent = note;
+    let hsHtml = '';
+    if(state.hintsUsed === 0 && newB.bestPure === state.moves) hsHtml = '🏆 שיא חדש (ללא רמזים)';
+    else if(newB.best === state.moves && state.hintsUsed > 0) hsHtml = '🏆 שיא חדש';
+    else hsHtml = 'שיא: ' + (newB.bestPure > 0 ? newB.bestPure + '★' : (newB.best > 0 ? newB.best : '—'));
+    $('winHsNote').innerHTML = hsHtml;
+    gameOverShown = true;
+    $('winModal').classList.add('active');
+    if(state.level >= LEVELS_RAW.length){
+      // override modal in 1.2s — show "all done"
+      // (handled by Next Level button)
+    }
+  }, 600);
+}
+
+/* ====== Hint ====== */
+function requestHint(){
+  if(state.won) return;
+  // Solve
+  const path = solve(state.cars);
+  if(!path || path.length === 0){
+    showToast('כבר פתרת או אין פתרון זמין');
+    return;
+  }
+  const first = path[0];
+  state.hintFlash = { carIndex: first.carIndex, until: performance.now() + 2200 };
+  state.hintsUsed++;
+  state.moves += HINT_PENALTY;
+  SFX.hint();
+  updateHud();
+  hideToast();
+}
+
+/* ====== Main loop ====== */
+function loop(now){
+  if(!running) return;
+  const dt = Math.min(48, now - state.lastT);
+  state.lastT = now;
+  if(!paused){
+    state.timeMs += dt;
+    // Exit animation — slide the player car off the right side
+    if(state.exitAnim && !state.won){
+      state.exitAnim.offset += state.exitAnim.speed * (dt/16.67);
+      if(state.exitAnim.offset >= 2.5){
+        state.exitAnim = null;
+        handleWin();
+      }
+    }
+    // Idle detection
+    const idleMs = now - state.lastInteractionT;
+    if(!state.tutorialShown && state.level === 1 && idleMs > IDLE_HINT_TUTORIAL && state.moves === 0){
+      state.tutorialShown = true;
+      localStorage.setItem('arcadya_rushhour_hint_tutorial_shown', 'true');
+      showToast('תקוע? החזק את הכפתור העגול לרמז (+3 מהלכים)');
+    }
+    if(idleMs > IDLE_PULSE && !state.pulseActive){
+      state.pulseActive = true;
+      $('btnAction').classList.add('idle-pulse');
+    } else if(idleMs <= IDLE_PULSE && state.pulseActive){
+      state.pulseActive = false;
+      $('btnAction').classList.remove('idle-pulse');
+    }
+  }
+  draw();
+  drawHoldRing();
+  updateHud();
+  requestAnimationFrame(loop);
+}
+
+/* ====== Drawing ====== */
+function draw(){
+  ctx2d.fillStyle = '#04010e';
+  ctx2d.fillRect(0,0,DESIGN_W,DESIGN_H);
+
+  // Asphalt-like board background
+  const grad = ctx2d.createLinearGradient(0, BOARD_Y, 0, BOARD_Y + N*CELL);
+  grad.addColorStop(0, '#1f1730');
+  grad.addColorStop(1, '#0e0820');
+  ctx2d.fillStyle = grad;
+  ctx2d.fillRect(BOARD_X-4, BOARD_Y-4, N*CELL+8, N*CELL+8);
+
+  // Grid lines
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx2d.lineWidth = 1;
+  for(let i=0; i<=N; i++){
+    ctx2d.beginPath();
+    ctx2d.moveTo(BOARD_X + i*CELL, BOARD_Y);
+    ctx2d.lineTo(BOARD_X + i*CELL, BOARD_Y + N*CELL);
+    ctx2d.stroke();
+    ctx2d.beginPath();
+    ctx2d.moveTo(BOARD_X, BOARD_Y + i*CELL);
+    ctx2d.lineTo(BOARD_X + N*CELL, BOARD_Y + i*CELL);
+    ctx2d.stroke();
+  }
+
+  // Outer border with glow + EXIT GAP at row 2 right side
+  ctx2d.strokeStyle = '#ff8a3d';
+  ctx2d.lineWidth = 3;
+  ctx2d.shadowColor = '#ff8a3d'; ctx2d.shadowBlur = 8;
+  // top
+  ctx2d.beginPath(); ctx2d.moveTo(BOARD_X, BOARD_Y); ctx2d.lineTo(BOARD_X + N*CELL, BOARD_Y); ctx2d.stroke();
+  // bottom
+  ctx2d.beginPath(); ctx2d.moveTo(BOARD_X, BOARD_Y + N*CELL); ctx2d.lineTo(BOARD_X + N*CELL, BOARD_Y + N*CELL); ctx2d.stroke();
+  // left
+  ctx2d.beginPath(); ctx2d.moveTo(BOARD_X, BOARD_Y); ctx2d.lineTo(BOARD_X, BOARD_Y + N*CELL); ctx2d.stroke();
+  // right (with gap at row 2)
+  ctx2d.beginPath();
+  ctx2d.moveTo(BOARD_X + N*CELL, BOARD_Y);
+  ctx2d.lineTo(BOARD_X + N*CELL, BOARD_Y + 2*CELL);
+  ctx2d.stroke();
+  ctx2d.beginPath();
+  ctx2d.moveTo(BOARD_X + N*CELL, BOARD_Y + 3*CELL);
+  ctx2d.lineTo(BOARD_X + N*CELL, BOARD_Y + N*CELL);
+  ctx2d.stroke();
+  // Exit arrow
+  ctx2d.fillStyle = '#ffe94a';
+  ctx2d.shadowColor = '#ffe94a';
+  ctx2d.beginPath();
+  const ex = BOARD_X + N*CELL + 4;
+  const ey = BOARD_Y + 2.5*CELL;
+  ctx2d.moveTo(ex, ey - 8);
+  ctx2d.lineTo(ex + 9, ey);
+  ctx2d.lineTo(ex, ey + 8);
+  ctx2d.closePath(); ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+
+  // Cars
+  for(let i=0;i<state.cars.length;i++){
+    drawCar(state.cars[i], i);
+  }
+
+  // Cursor (when no car selected, show on board cell)
+  if(state.selectedCarIndex < 0 && !state.won){
+    const cx = state.cursor.x * CELL + BOARD_X;
+    const cy = state.cursor.y * CELL + BOARD_Y;
+    const t = (Math.sin(performance.now()/180) + 1) / 2;
+    ctx2d.strokeStyle = 'rgba(255,233,74,' + (0.6 + t*0.4) + ')';
+    ctx2d.lineWidth = 3;
+    ctx2d.shadowColor = '#ffe94a'; ctx2d.shadowBlur = 8;
+    ctx2d.strokeRect(cx+3, cy+3, CELL-6, CELL-6);
+    ctx2d.shadowBlur = 0;
+  }
+
+  // Bottom info: hint about the action to take
+  ctx2d.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx2d.font = 'bold 10px "Segoe UI",sans-serif';
+  ctx2d.textAlign = 'center';
+  if(state.selectedCarIndex >= 0){
+    const c = state.cars[state.selectedCarIndex];
+    const t = c.orient === 'h' ? 'חצים ימין/שמאל = הזזה  ·  למעלה/מטה = יציאה' : 'חצים מעלה/מטה = הזזה  ·  שמאל/ימין = יציאה';
+    ctx2d.fillText(t, DESIGN_W/2, DESIGN_H - 6);
+  } else {
+    ctx2d.fillText('סמן + SELECT לבחור מכונית', DESIGN_W/2, DESIGN_H - 6);
+  }
+}
+
+function drawCar(c, ci){
+  // Apply exit-animation offset to player car only
+  const exitOff = (c.isPlayer && state.exitAnim) ? state.exitAnim.offset : 0;
+  const cellX = c.x + (c.orient === 'h' ? exitOff : 0);
+  const cellY = c.y;
+  const x = BOARD_X + cellX*CELL;
+  const y = BOARD_Y + cellY*CELL;
+  const w = (c.orient === 'h' ? c.length : 1) * CELL;
+  const h = (c.orient === 'v' ? c.length : 1) * CELL;
+  const isSel = (ci === state.selectedCarIndex);
+  const isHinting = (ci === state.hintFlash.carIndex && performance.now() < state.hintFlash.until);
+  let bodyColor = carColor(c);
+  if(isHinting && Math.floor(performance.now()/200)%2 === 0){
+    bodyColor = '#ffe94a';
+  }
+  if(c.orient === 'h') drawCarHorizontal(c, x, y, w, h, bodyColor);
+  else                 drawCarVertical(c, x, y, w, h, bodyColor);
+
+  // Selection border
+  if(isSel){
+    ctx2d.strokeStyle = '#ffe94a';
+    ctx2d.lineWidth = 3;
+    ctx2d.shadowColor = '#ffe94a'; ctx2d.shadowBlur = 10;
+    roundRect(ctx2d, x+2, y+2, w-4, h-4, 9);
+    ctx2d.stroke();
+    ctx2d.shadowBlur = 0;
+  }
+}
+
+function drawCarHorizontal(c, x, y, w, h, color){
+  const isPlayer = c.isPlayer;
+  const isTruck = c.length >= 3;
+  const PAD_Y = 6;            // top/bottom padding for wheels visible outside body
+  const bodyY = y + PAD_Y;
+  const bodyH = h - PAD_Y*2;
+  // Drop shadow
+  ctx2d.fillStyle = 'rgba(0,0,0,0.5)';
+  roundRect(ctx2d, x+4, bodyY+3, w-6, bodyH, 9);
+  ctx2d.fill();
+  // Wheels (drawn first, peeking out top + bottom)
+  drawWheel(x + 12,    y + 3);
+  drawWheel(x + w-18,  y + 3);
+  drawWheel(x + 12,    y + h-9);
+  drawWheel(x + w-18,  y + h-9);
+  if(isTruck){
+    // middle wheel pair for trucks
+    drawWheel(x + w/2 - 3, y + 3);
+    drawWheel(x + w/2 - 3, y + h-9);
+  }
+  // Body
+  ctx2d.fillStyle = color;
+  ctx2d.shadowColor = color; ctx2d.shadowBlur = isPlayer ? 14 : 6;
+  roundRect(ctx2d, x+5, bodyY, w-10, bodyH, 9);
+  ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+  // Top reflection stripe
+  ctx2d.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx2d.fillRect(x+9, bodyY+3, w-18, 3);
+  // Headlights at FRONT (player faces right; others assumed face right too for variety)
+  // Front = right side of horizontal car
+  ctx2d.fillStyle = '#fff7c0';
+  ctx2d.shadowColor = '#fff7c0'; ctx2d.shadowBlur = 4;
+  ctx2d.fillRect(x + w - 8, bodyY + 4,           4, 3);
+  ctx2d.fillRect(x + w - 8, bodyY + bodyH - 7,   4, 3);
+  ctx2d.shadowBlur = 0;
+  // Tail lights at BACK (left side)
+  ctx2d.fillStyle = '#ff4a6b';
+  ctx2d.fillRect(x + 5, bodyY + 4,           3, 3);
+  ctx2d.fillRect(x + 5, bodyY + bodyH - 7,   3, 3);
+  // Windows
+  if(isTruck){
+    // Cab at right (front)
+    const cabX = x + w - CELL*0.7;
+    ctx2d.fillStyle = 'rgba(40,80,140,0.85)';
+    roundRect(ctx2d, cabX, bodyY + 5, CELL*0.55, bodyH - 10, 4);
+    ctx2d.fill();
+    // Cargo separator
+    ctx2d.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx2d.lineWidth = 1;
+    ctx2d.beginPath();
+    ctx2d.moveTo(cabX - 2, bodyY + 2);
+    ctx2d.lineTo(cabX - 2, bodyY + bodyH - 2);
+    ctx2d.stroke();
+    // Cargo lines
+    for(let i=0;i<3;i++){
+      ctx2d.beginPath();
+      ctx2d.moveTo(x + 10 + i*((cabX - x - 14) / 3), bodyY + 4);
+      ctx2d.lineTo(x + 10 + i*((cabX - x - 14) / 3), bodyY + bodyH - 4);
+      ctx2d.stroke();
+    }
+  } else {
+    // Regular car: windshield (front, slanted) + rear window
+    // Windshield
+    ctx2d.fillStyle = 'rgba(40,80,140,0.85)';
+    ctx2d.beginPath();
+    ctx2d.moveTo(x + w*0.55, bodyY + 4);
+    ctx2d.lineTo(x + w - 12, bodyY + 4);
+    ctx2d.lineTo(x + w - 9,  bodyY + bodyH - 4);
+    ctx2d.lineTo(x + w*0.55 + 3, bodyY + bodyH - 4);
+    ctx2d.closePath();
+    ctx2d.fill();
+    // Rear window
+    ctx2d.beginPath();
+    ctx2d.moveTo(x + w*0.45 - 3, bodyY + 4);
+    ctx2d.lineTo(x + 12,          bodyY + 4);
+    ctx2d.lineTo(x + 9,           bodyY + bodyH - 4);
+    ctx2d.lineTo(x + w*0.45,      bodyY + bodyH - 4);
+    ctx2d.closePath();
+    ctx2d.fill();
+    // Roof divider
+    ctx2d.fillStyle = color;
+    ctx2d.fillRect(x + w*0.45, bodyY + 3, 5, bodyH - 6);
+  }
+  // Side mirror dots
+  ctx2d.fillStyle = color;
+  ctx2d.fillRect(x + w - 14, bodyY - 2, 4, 2);
+  ctx2d.fillRect(x + w - 14, bodyY + bodyH, 4, 2);
+}
+
+function drawCarVertical(c, x, y, w, h, color){
+  const isTruck = c.length >= 3;
+  const PAD_X = 6;
+  const bodyX = x + PAD_X;
+  const bodyW = w - PAD_X*2;
+  // Drop shadow
+  ctx2d.fillStyle = 'rgba(0,0,0,0.5)';
+  roundRect(ctx2d, bodyX+3, y+4, bodyW, h-6, 9);
+  ctx2d.fill();
+  // Wheels left + right edges
+  drawWheel(x + 3,      y + 12);
+  drawWheel(x + 3,      y + h-18);
+  drawWheel(x + w - 9,  y + 12);
+  drawWheel(x + w - 9,  y + h-18);
+  if(isTruck){
+    drawWheel(x + 3,     y + h/2 - 3);
+    drawWheel(x + w - 9, y + h/2 - 3);
+  }
+  // Body
+  ctx2d.fillStyle = color;
+  ctx2d.shadowColor = color; ctx2d.shadowBlur = 6;
+  roundRect(ctx2d, bodyX, y+5, bodyW, h-10, 9);
+  ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+  // Side reflection
+  ctx2d.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx2d.fillRect(bodyX+3, y+9, 3, h-18);
+  // Headlights at TOP (front), tail at BOTTOM (back) — vertical car points "up"
+  ctx2d.fillStyle = '#fff7c0';
+  ctx2d.shadowColor = '#fff7c0'; ctx2d.shadowBlur = 4;
+  ctx2d.fillRect(bodyX + 4,         y + 5, 3, 4);
+  ctx2d.fillRect(bodyX + bodyW - 7, y + 5, 3, 4);
+  ctx2d.shadowBlur = 0;
+  ctx2d.fillStyle = '#ff4a6b';
+  ctx2d.fillRect(bodyX + 4,         y + h - 9, 3, 3);
+  ctx2d.fillRect(bodyX + bodyW - 7, y + h - 9, 3, 3);
+  // Windows
+  if(isTruck){
+    // Cab at top
+    const cabY = y + 12;
+    ctx2d.fillStyle = 'rgba(40,80,140,0.85)';
+    roundRect(ctx2d, bodyX + 5, cabY, bodyW - 10, CELL*0.55, 4);
+    ctx2d.fill();
+    // Cargo lines
+    ctx2d.strokeStyle = 'rgba(0,0,0,0.5)';
+    ctx2d.lineWidth = 1;
+    for(let i=1;i<3;i++){
+      ctx2d.beginPath();
+      ctx2d.moveTo(bodyX + 4, y + h - 14 - i*14);
+      ctx2d.lineTo(bodyX + bodyW - 4, y + h - 14 - i*14);
+      ctx2d.stroke();
+    }
+  } else {
+    ctx2d.fillStyle = 'rgba(40,80,140,0.85)';
+    // Windshield (top, trapezoid)
+    ctx2d.beginPath();
+    ctx2d.moveTo(bodyX + 4,         y + h*0.55);
+    ctx2d.lineTo(bodyX + 4,         y + h - 12);
+    ctx2d.lineTo(bodyX + bodyW - 4, y + h - 9);
+    ctx2d.lineTo(bodyX + bodyW - 4, y + h*0.55 + 3);
+    ctx2d.closePath();
+    // Wait — windshield is at FRONT = TOP for vertical cars
+    ctx2d.beginPath();
+    ctx2d.moveTo(bodyX + 4,         y + 12);
+    ctx2d.lineTo(bodyX + bodyW - 4, y + 12);
+    ctx2d.lineTo(bodyX + bodyW - 7, y + h*0.45);
+    ctx2d.lineTo(bodyX + 7,         y + h*0.45);
+    ctx2d.closePath();
+    ctx2d.fill();
+    // Rear window (bottom)
+    ctx2d.beginPath();
+    ctx2d.moveTo(bodyX + 4,         y + h - 12);
+    ctx2d.lineTo(bodyX + bodyW - 4, y + h - 12);
+    ctx2d.lineTo(bodyX + bodyW - 7, y + h*0.55);
+    ctx2d.lineTo(bodyX + 7,         y + h*0.55);
+    ctx2d.closePath();
+    ctx2d.fill();
+    // Roof divider
+    ctx2d.fillStyle = color;
+    ctx2d.fillRect(bodyX + 3, y + h*0.45, bodyW - 6, 5);
+  }
+  // Side mirrors
+  ctx2d.fillStyle = color;
+  ctx2d.fillRect(bodyX - 2, y + 12, 2, 4);
+  ctx2d.fillRect(bodyX + bodyW, y + 12, 2, 4);
+}
+
+function drawWheel(x, y){
+  ctx2d.fillStyle = '#0a0510';
+  roundRect(ctx2d, x, y, 6, 6, 2);
+  ctx2d.fill();
+  ctx2d.fillStyle = '#444';
+  ctx2d.fillRect(x+1, y+2, 4, 2);
+}
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath();
+}
+
+const ringCanvas = $('holdRing'), ringCtx = ringCanvas.getContext('2d');
+function drawHoldRing(){
+  const W = 104, H = 104;
+  ringCtx.clearRect(0,0,W,H);
+  if(!state || !state.holding) return;
+  const elapsed = performance.now() - state.holdStart;
+  const frac = Math.min(1, elapsed / HOLD_FOR_HINT);
+  const cx = W/2, cy = H/2;
+  ringCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ringCtx.lineWidth = 3;
+  ringCtx.beginPath(); ringCtx.arc(cx,cy, 48, 0, Math.PI*2); ringCtx.stroke();
+  ringCtx.strokeStyle = '#ffe94a';
+  ringCtx.shadowColor = '#ffe94a'; ringCtx.shadowBlur = 6;
+  ringCtx.lineWidth = 3;
+  ringCtx.beginPath(); ringCtx.arc(cx,cy, 48, -Math.PI/2, -Math.PI/2 + Math.PI*2*frac); ringCtx.stroke();
+  ringCtx.shadowBlur = 0;
+}
+
+/* ====== Input ====== */
+function noteInteraction(){
+  state.lastInteractionT = performance.now();
+  if(state.pulseActive){
+    state.pulseActive = false;
+    $('btnAction').classList.remove('idle-pulse');
+  }
+}
+
+function moveCursor(dir){
+  if(!state || state.won) return;
+  noteInteraction();
+  if(state.selectedCarIndex >= 0){
+    // In selected mode: arrows along axis = move car; perpendicular = deselect
+    const c = state.cars[state.selectedCarIndex];
+    if(c.orient === 'h'){
+      if(dir === 'left')       moveSelected(-1);
+      else if(dir === 'right') moveSelected(+1);
+      else { state.selectedCarIndex = -1; updateActionLabel(); }
+    } else {
+      if(dir === 'up')         moveSelected(-1);
+      else if(dir === 'down')  moveSelected(+1);
+      else { state.selectedCarIndex = -1; updateActionLabel(); }
+    }
+    return;
+  }
+  // Cursor mode
+  if(dir === 'up'    && state.cursor.y > 0)   state.cursor.y--;
+  if(dir === 'down'  && state.cursor.y < N-1) state.cursor.y++;
+  if(dir === 'left'  && state.cursor.x > 0)   state.cursor.x--;
+  if(dir === 'right' && state.cursor.x < N-1) state.cursor.x++;
+  SFX.click();
+}
+
+document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+  const dir = btn.dataset.dir;
+  btn.addEventListener('click', ()=> moveCursor(dir));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+document.addEventListener('keydown', e=>{
+  if(!state) return;
+  if(e.repeat) return;
+  if(e.key === 'ArrowUp')    moveCursor('up');
+  else if(e.key === 'ArrowDown')  moveCursor('down');
+  else if(e.key === 'ArrowLeft')  moveCursor('left');
+  else if(e.key === 'ArrowRight') moveCursor('right');
+  else if(e.key === ' ')          { e.preventDefault(); actionPress(); }
+  else if(e.key === 'p' || e.key === 'P') togglePause();
+});
+document.addEventListener('keyup', e=>{
+  if(e.key === ' ') actionRelease();
+});
+
+const actionBtn = $('btnAction');
+function actionPress(e){
+  if(e) e.preventDefault();
+  if(!state || state.won || paused) return;
+  state.holding = true;
+  state.holdStart = performance.now();
+  actionBtn.style.filter = 'brightness(1.15)';
+}
+function actionRelease(){
+  if(!state || !state.holding) return;
+  const elapsed = performance.now() - state.holdStart;
+  state.holding = false;
+  actionBtn.style.filter = '';
+  noteInteraction();
+  if(elapsed >= HOLD_FOR_HINT){
+    requestHint();
+    return;
+  }
+  // Quick tap: select/deselect car under cursor
+  if(state.selectedCarIndex >= 0){
+    state.selectedCarIndex = -1;
+    SFX.click();
+    updateActionLabel();
+    return;
+  }
+  const ci = carAt(state.cursor.x, state.cursor.y);
+  if(ci >= 0){
+    state.selectedCarIndex = ci;
+    SFX.select();
+    updateActionLabel();
+  } else {
+    SFX.click();
+  }
+}
+actionBtn.addEventListener('touchstart', actionPress, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();actionRelease();}, {passive:false});
+actionBtn.addEventListener('touchcancel',e=>{e.preventDefault();state.holding=false;actionBtn.style.filter='';}, {passive:false});
+actionBtn.addEventListener('mousedown', actionPress);
+actionBtn.addEventListener('mouseup',   actionRelease);
+actionBtn.addEventListener('mouseleave',()=>{ if(state && state.holding){ state.holding=false; actionBtn.style.filter=''; }});
+actionBtn.addEventListener('contextmenu', e => e.preventDefault());
+
+// Direct tap on a board cell selects the car under it
+canvas.addEventListener('click', e=>{
+  if(!state || state.won) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (DESIGN_W / rect.width);
+  const y = (e.clientY - rect.top) * (DESIGN_H / rect.height);
+  const cx = Math.floor((x - BOARD_X) / CELL);
+  const cy = Math.floor((y - BOARD_Y) / CELL);
+  if(cx < 0 || cx >= N || cy < 0 || cy >= N) return;
+  state.cursor = { x: cx, y: cy };
+  noteInteraction();
+  const ci = carAt(cx, cy);
+  if(ci >= 0){
+    state.selectedCarIndex = ci;
+    SFX.select();
+    updateActionLabel();
+  }
+});
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

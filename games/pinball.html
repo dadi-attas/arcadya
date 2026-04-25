@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#05010f" />
+<link rel="icon" type="image/svg+xml" href="../assets/icons/icon.svg" />
+<link rel="stylesheet" href="../assets/arcadya-shell.css" />
+<script src="../assets/arcadya-shell.js"></script>
+<title>ARCADYA — PINBALL</title>
+<style>
+  :root{
+    --bg-0:#05010f; --bg-1:#0b0320;
+    --neon-pink:#ff2d95; --neon-cyan:#00e6ff; --neon-purple:#b14bff;
+    --neon-yellow:#ffe94a; --neon-green:#3dff9a; --neon-orange:#ff8a3d;
+    --text:#fff; --muted:#a79ec9; --danger:#ff4a6b;
+    --accent:#ffe94a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Heebo",Tahoma,sans-serif;background:var(--bg-0);color:var(--text);overflow:hidden;user-select:none;-webkit-user-select:none;}
+  #app{position:relative;width:100vw;height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 800px at 50% -10%,rgba(255,233,74,.18),transparent 60%),radial-gradient(900px 600px at 50% 110%,rgba(177,75,255,.18),transparent 60%),linear-gradient(180deg,var(--bg-1) 0%,var(--bg-0) 100%);}
+  #stage{position:relative;width:100%;height:100%;max-width:520px;max-height:100%;background:linear-gradient(180deg,#0c0426 0%,#070116 100%);overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.04),0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+  @media (min-width:900px){#stage{max-width:440px;max-height:min(900px,95vh);border-radius:28px;border:1px solid rgba(255,255,255,.07);}}
+
+  .hud{position:relative;display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:6px;background:linear-gradient(180deg,rgba(255,255,255,.04),transparent);border-bottom:1px solid rgba(255,255,255,.06);z-index:5;}
+  .hud-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .08s;flex:0 0 auto;}
+  .hud-btn:active{transform:scale(.92);}
+  .hud-btn.exit{color:var(--danger);border-color:rgba(255,74,107,.35);background:rgba(255,74,107,.08);}
+  .hud-center{display:flex;gap:10px;align-items:center;flex-wrap:nowrap;}
+  .score-group{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+  .label{color:var(--muted);font-size:9px;letter-spacing:2px;}
+  .val{font-size:14px;font-weight:800;color:var(--accent);text-shadow:0 0 6px rgba(255,233,74,.55);}
+  .val.hi{color:var(--neon-yellow);}
+  .val.lv{color:var(--neon-cyan);}
+  .balls{display:flex;gap:3px;}
+  .balls .b{width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:0 0 5px #fff;}
+  .hud-right{display:flex;gap:6px;}
+
+  .play{flex:1;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#04010e;}
+  canvas{display:block;max-width:100%;max-height:100%;}
+
+  .controls{position:relative;border-top:2px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#0a0320,#050110);padding:14px 14px calc(14px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;min-height:150px;}
+  .dpad{position:relative;width:150px;height:150px;justify-self:start;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);}
+  .dpad button{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:22px;cursor:pointer;transition:transform .08s,background .1s;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;}
+  .dpad button:active{transform:scale(.9);background:rgba(255,233,74,.3);}
+  .dpad button.disabled{opacity:.25;}
+  .d-up{grid-column:2;grid-row:1;border-top-left-radius:10px;border-top-right-radius:10px;}
+  .d-down{grid-column:2;grid-row:3;border-bottom-left-radius:10px;border-bottom-right-radius:10px;}
+  .d-left{grid-column:3;grid-row:2;border-top-left-radius:10px;border-bottom-left-radius:10px;}
+  .d-right{grid-column:1;grid-row:2;border-top-right-radius:10px;border-bottom-right-radius:10px;}
+  .d-center{grid-column:2;grid-row:2;background:transparent;border:none;pointer-events:none;}
+
+  .action-wrap{display:flex;align-items:center;justify-content:center;}
+  .action{width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff68a,#ffe94a 55%,#9c7d00 100%);color:#2a1e00;font-weight:900;font-size:13px;letter-spacing:2px;border:none;cursor:pointer;box-shadow:0 0 24px rgba(255,233,74,.55),inset 0 -6px 12px rgba(0,0,0,.3);transition:transform .08s;}
+  .action:active{transform:scale(.92);}
+
+  .overlay{position:absolute;inset:0;background:rgba(5,1,15,.85);display:none;align-items:center;justify-content:center;z-index:20;animation:fadeIn .15s ease-out;}
+  .overlay.active{display:flex;}
+  .overlay-box{width:82%;max-width:320px;text-align:center;background:linear-gradient(180deg,#1a0946,#0c0326);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:24px 20px 20px;box-shadow:0 0 40px rgba(255,233,74,.25);}
+  .overlay-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+  .overlay-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{flex:1;padding:12px 0;border-radius:12px;font-size:15px;font-weight:800;border:1px solid transparent;cursor:pointer;transition:transform .08s;}
+  .btn:active{transform:scale(.95);}
+  .btn-yes{background:linear-gradient(180deg,#ffe94a,#ff8a3d);color:#2a1e00;box-shadow:0 6px 20px rgba(255,233,74,.4);}
+  .btn-no{background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.15);}
+  .pause-label{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;letter-spacing:3px;background:rgba(5,1,15,.55);z-index:15;text-shadow:0 0 10px var(--neon-cyan);}
+  .pause-label.active{display:flex;}
+
+  .opener{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,#1a0550 0%,#05010f 80%);display:flex;align-items:center;justify-content:center;z-index:30;animation:openerFade 4s forwards;}
+  .opener .gm-name{font-size:clamp(44px,12vw,64px);font-weight:900;letter-spacing:6px;color:#fff;text-shadow:0 0 8px #fff,0 0 18px var(--accent),0 0 36px var(--accent),0 0 60px var(--neon-pink);animation:openerPulse 1s infinite alternate;text-align:center;}
+  @keyframes openerFade{0%{opacity:1;}80%{opacity:1;}100%{opacity:0;visibility:hidden;}}
+  @keyframes openerPulse{from{transform:scale(.95);}to{transform:scale(1.05);}}
+
+  .gameover-box .big-score{font-size:44px;font-weight:900;color:var(--accent);text-shadow:0 0 18px var(--accent);margin:6px 0;}
+  .gameover-box .note{color:var(--neon-cyan);font-size:13px;letter-spacing:2px;margin-bottom:4px;}
+  .gameover-box .hs-note{color:var(--neon-yellow);font-size:13px;letter-spacing:2px;margin-bottom:14px;min-height:18px;}
+  .gameover-box .go-actions{display:flex;gap:10px;margin-top:4px;}
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+</style>
+</head>
+<body>
+<div id="app"><div id="stage">
+  <div class="hud">
+    <button id="btnExit" class="hud-btn exit" aria-label="יציאה">✕</button>
+    <div class="hud-center">
+      <div class="score-group"><div class="label">SCORE</div><div id="score" class="val">0</div></div>
+      <div class="score-group"><div class="label">HI</div><div id="hiscore" class="val hi">0</div></div>
+      <div class="score-group"><div class="label">BALLS</div><div id="balls" class="balls"></div></div>
+    </div>
+    <div class="hud-right">
+      <button id="btnSound" class="hud-btn" aria-label="סאונד">🔊</button>
+      <button id="btnPause" class="hud-btn" aria-label="פאוז">⏸</button>
+    </div>
+  </div>
+
+  <div class="play">
+    <canvas id="game"></canvas>
+    <div id="pauseLabel" class="pause-label">המשחק מושהה</div>
+  </div>
+
+  <div class="controls">
+    <div class="dpad">
+      <button class="d-up disabled"    data-dir="up">▲</button>
+      <button class="d-right"          data-dir="right">▶</button>
+      <button class="d-center" tabindex="-1"></button>
+      <button class="d-left  disabled" data-dir="left">◀</button>
+      <button class="d-down"           data-dir="down">▼</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btnAction" class="action">L<br>FLIP</button>
+    </div>
+  </div>
+
+  <div id="opener" class="opener"><div class="gm-name">PINBALL</div></div>
+
+  <div id="exitModal" class="overlay">
+    <div class="overlay-box">
+      <div class="overlay-title">לצאת מהמשחק?</div>
+      <div class="overlay-actions">
+        <button id="exitYes" class="btn btn-yes">כן</button>
+        <button id="exitNo"  class="btn btn-no">לא</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameOver" class="overlay">
+    <div class="overlay-box gameover-box">
+      <div class="overlay-title">סיום משחק</div>
+      <div id="finalScore" class="big-score">0</div>
+      <div id="goNote" class="note">&nbsp;</div>
+      <div id="hsNote" class="hs-note">&nbsp;</div>
+      <div class="go-actions">
+        <button id="playAgain" class="btn btn-yes">שחק שוב</button>
+        <button id="backHome"  class="btn btn-no">חזרה ל־ARCADYA</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+
+<script>
+const SFX = ARCADYA.makeSFX({
+  flip:       beep => { beep(260,0.04,'square',0.08); setTimeout(()=>beep(440,0.04,'square',0.06),20); },
+  bumper:     beep => { beep(880,0.06,'triangle',0.12); setTimeout(()=>beep(1320,0.06,'triangle',0.1),40); },
+  sling:      beep => beep(660,0.05,'square',0.1),
+  target:     beep => { beep(1100,0.08,'triangle',0.12); setTimeout(()=>beep(1760,0.1,'triangle',0.12),60); },
+  allTargets: beep => { [0,1,2,3].forEach(i => setTimeout(()=>beep(660+i*220,0.1,'triangle',0.14), i*80)); },
+  launch:     beep => { beep(180,0.15,'square',0.12); setTimeout(()=>beep(440,0.1,'square',0.1),80); },
+  drain:      beep => { beep(220,0.3,'sawtooth',0.14); setTimeout(()=>beep(110,0.4,'sawtooth',0.12),200); }
+});
+
+/* ====== Shell ====== */
+const HS_KEY = 'arcadya_pinball_high_score';
+const $ = id => document.getElementById(id);
+let paused=false, gameOverShown=false, running=false;
+
+SFX.open();
+setTimeout(()=>{ $('opener').style.display='none'; startGame(); }, 4000);
+
+function refreshSoundBtn(){ $('btnSound').textContent = SFX.isMuted() ? '🔇' : '🔊'; }
+refreshSoundBtn();
+$('btnSound').addEventListener('click', ()=>{ SFX.toggle(); refreshSoundBtn(); SFX.click(); });
+
+$('btnPause').addEventListener('click', togglePause);
+function togglePause(){
+  if(gameOverShown) return;
+  paused = !paused;
+  $('btnPause').textContent = paused ? '▶' : '⏸';
+  $('pauseLabel').classList.toggle('active', paused);
+  SFX.click();
+}
+
+$('btnExit').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.add('active'); if(!paused) togglePause(); });
+$('exitNo').addEventListener('click', ()=>{ SFX.click(); $('exitModal').classList.remove('active'); if(paused) togglePause(); });
+$('exitYes').addEventListener('click', ()=>{ window.location.href = '../index.html?home=1'; });
+
+$('playAgain').addEventListener('click', ()=>{ SFX.click(); $('gameOver').classList.remove('active'); gameOverShown = false; startGame(); });
+$('backHome').addEventListener('click',  ()=>{ window.location.href = '../index.html?home=1'; });
+
+/* ====== Table layout ====== */
+const DESIGN_W = 340;
+const DESIGN_H = 580;
+const BALL_R = 7;
+const GRAVITY = 0.2;
+const MAX_SPEED = 16;
+const RESTITUTION = 0.85;
+
+// Main boundary walls + slingshots. Order matters only for drawing.
+const WALLS = [
+  // Top — straight for main field, then diagonal that redirects balls
+  // exiting the launcher lane back into the main field.
+  {a:{x:20,y:40}, b:{x:260,y:40}},
+  // Top-right diagonal "return gutter" (launcher exit curves back leftward)
+  {a:{x:260,y:40}, b:{x:320,y:90}},
+  // Left wall
+  {a:{x:20,y:40}, b:{x:20,y:370}},
+  // Left slingshot hypotenuse
+  {a:{x:20,y:370}, b:{x:85,y:450}, sling:'L'},
+  // Left outwards ramp toward drain
+  {a:{x:85,y:450}, b:{x:105,y:540}},
+  // DRAIN GAP (105 to 225 at y=540)
+  // Right outwards ramp toward drain
+  {a:{x:235,y:450}, b:{x:215,y:540}},
+  // Right slingshot hypotenuse
+  {a:{x:300,y:370}, b:{x:235,y:450}, sling:'R'},
+  // Main right inner wall (above slingshot, below the opening at y≈110)
+  {a:{x:300,y:110}, b:{x:300,y:370}},
+  // Launcher outer wall
+  {a:{x:320,y:90}, b:{x:320,y:560}},
+  // Launcher inner wall (below slingshot gap) — keeps ball in launcher lane
+  // until it reaches the top and enters the main field via the curve.
+  {a:{x:300,y:450}, b:{x:300,y:560}},
+  // Launcher bottom (floor)
+  {a:{x:300,y:560}, b:{x:320,y:560}},
+];
+
+const BUMPERS = [
+  {x:90, y:170, r:18, flash:0},
+  {x:200, y:130, r:20, flash:0},
+  {x:260, y:200, r:18, flash:0},
+];
+
+const TARGETS = [
+  {x:50,  y:290, w:14, h:8, alive:true},
+  {x:100, y:270, w:14, h:8, alive:true},
+  {x:160, y:260, w:14, h:8, alive:true},
+  {x:220, y:270, w:14, h:8, alive:true},
+  {x:270, y:290, w:14, h:8, alive:true},
+];
+
+const DEG = Math.PI / 180;
+
+function makeFlippers(){
+  return [
+    {
+      side:'L', pivotX:100, pivotY:500, length:50, width:8,
+      rest: 25*DEG, act: -30*DEG, angle: 25*DEG, angularVel:0, active:false
+    },
+    {
+      side:'R', pivotX:220, pivotY:500, length:50, width:8,
+      rest: Math.PI - 25*DEG, act: Math.PI + 30*DEG, angle: Math.PI - 25*DEG, angularVel:0, active:false
+    }
+  ];
+}
+
+/* ====== Canvas ====== */
+const canvas = $('game'), ctx2d = canvas.getContext('2d');
+function fitCanvas(){
+  const play = document.querySelector('.play');
+  const pw = play.clientWidth - 8, ph = play.clientHeight - 8;
+  const ratio = DESIGN_W / DESIGN_H;
+  let w = pw, h = pw / ratio;
+  if(h > ph){ h = ph; w = ph * ratio; }
+  canvas.width = DESIGN_W; canvas.height = DESIGN_H;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); if(state) draw(); });
+
+/* ====== Game state ====== */
+let state;
+function startGame(){
+  fitCanvas();
+  state = {
+    score: 0,
+    hi: parseInt(localStorage.getItem(HS_KEY)||'0',10),
+    ballsLeft: 3,
+    ball: null,
+    flippers: makeFlippers(),
+    bumpers: BUMPERS.map(b => ({...b, flash:0})),
+    targets: TARGETS.map(t => ({...t})),
+    plunger: { charge: 0, ready: true, charging:false, flash:0 },
+    bumpBonus: 0,              // counts bumper hits (for gravity bonus)
+    gravityMult: 1.0,
+    lastT: performance.now(),
+    lost: false,
+    input: { rightFlip:false, leftFlip:false, plungerHeld:false }
+  };
+  spawnBallOnPlunger();
+  updateHud();
+  running = true;
+  requestAnimationFrame(loop);
+}
+
+function spawnBallOnPlunger(){
+  state.ball = {
+    x: 310, y: 535,
+    vx: 0, vy: 0,
+    onPlunger: true
+  };
+  state.plunger.ready = true;
+}
+
+function updateHud(){
+  $('score').textContent = state.score;
+  $('hiscore').textContent = Math.max(state.hi, state.score);
+  const bl = $('balls'); bl.innerHTML = '';
+  for(let i=0;i<state.ballsLeft;i++){ const d=document.createElement('div'); d.className='b'; bl.appendChild(d); }
+}
+
+/* ====== Main loop ====== */
+function loop(now){
+  if(!running) return;
+  const dt = Math.min(48, now - state.lastT);
+  state.lastT = now;
+  if(!paused) update(dt, now);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt, now){
+  const s = state;
+  if(s.lost) return;
+
+  // Flippers
+  for(const f of s.flippers) updateFlipper(f, dt);
+
+  // Plunger
+  if(s.plunger.charging){
+    s.plunger.charge = Math.min(1, s.plunger.charge + dt/1800);
+  }
+
+  // Bumper flash decay
+  for(const b of s.bumpers) if(b.flash > 0) b.flash = Math.max(0, b.flash - dt/100);
+
+  // Ball physics
+  if(!s.ball.onPlunger){
+    // Gravity
+    s.ball.vy += GRAVITY * s.gravityMult * (dt/16.67);
+    // Cap speed
+    let sp = Math.hypot(s.ball.vx, s.ball.vy);
+    if(sp > MAX_SPEED){ s.ball.vx *= MAX_SPEED/sp; s.ball.vy *= MAX_SPEED/sp; }
+    // Sub-step for better collisions
+    const steps = 3;
+    for(let i=0;i<steps;i++){
+      s.ball.x += s.ball.vx/steps * (dt/16.67);
+      s.ball.y += s.ball.vy/steps * (dt/16.67);
+      collideAll();
+    }
+    // Re-attach ball to plunger if it rolls back down the launcher lane
+    if(s.ball.x > 298 && s.ball.x < 322 &&
+       s.ball.y > 520 && Math.abs(s.ball.vy) < 1.8 && Math.abs(s.ball.vx) < 1.8){
+      s.ball.onPlunger = true;
+      s.ball.x = 310;
+      s.ball.vx = 0; s.ball.vy = 0;
+    }
+    // Drain check
+    if(s.ball.y > DESIGN_H + 10){
+      drainBall();
+    }
+  } else {
+    // Ball sits on plunger; follow plunger compression
+    const plungerY = 535 + s.plunger.charge * 15;
+    s.ball.y = plungerY - BALL_R;
+    s.ball.x = 310;
+  }
+}
+
+/* ====== Flipper ====== */
+function updateFlipper(f, dt){
+  const target = f.active ? f.act : f.rest;
+  const speed = 0.5;   // radians per frame max
+  const maxStep = speed * (dt/16.67);
+  const diff = target - f.angle;
+  let step;
+  if(Math.abs(diff) < maxStep) step = diff;
+  else step = Math.sign(diff) * maxStep;
+  f.angularVel = step / (dt/16.67);
+  f.angle += step;
+}
+
+/* ====== Collisions ====== */
+function collideAll(){
+  const s = state;
+  const b = s.ball;
+
+  // Wall collisions (line segments)
+  for(const w of WALLS){
+    const hit = collideBallSegment(b, w.a, w.b);
+    if(hit){
+      if(w.sling){
+        // Extra push away from slingshot
+        const boost = 3.2;
+        b.vx += hit.nx * boost;
+        b.vy += hit.ny * boost;
+        s.score += 50;
+        updateHud();
+        SFX.sling();
+      }
+    }
+  }
+
+  // Bumpers
+  for(const bmp of s.bumpers){
+    const dx = b.x - bmp.x, dy = b.y - bmp.y;
+    const d = Math.hypot(dx, dy);
+    const min = BALL_R + bmp.r;
+    if(d < min && d > 0.001){
+      const nx = dx/d, ny = dy/d;
+      b.x = bmp.x + nx*min;
+      b.y = bmp.y + ny*min;
+      const vn = b.vx*nx + b.vy*ny;
+      if(vn < 0){
+        b.vx -= 2*vn*nx;
+        b.vy -= 2*vn*ny;
+      }
+      // Boost
+      b.vx += nx*2.8; b.vy += ny*2.8;
+      // Min outgoing speed
+      const out = Math.hypot(b.vx, b.vy);
+      if(out < 4){ b.vx = nx*4; b.vy = ny*4; }
+      s.score += 100;
+      bmp.flash = 1;
+      s.bumpBonus++;
+      updateHud();
+      SFX.bumper();
+    }
+  }
+
+  // Targets (rectangles)
+  for(const t of s.targets){
+    if(!t.alive) continue;
+    const cx = t.x, cy = t.y;
+    const hx = t.w/2, hy = t.h/2;
+    const dx = Math.max(Math.abs(b.x - cx) - hx, 0);
+    const dy = Math.max(Math.abs(b.y - cy) - hy, 0);
+    if(dx*dx + dy*dy < BALL_R*BALL_R){
+      t.alive = false;
+      s.score += 500;
+      SFX.target();
+      // Bounce: use vector from target center to ball
+      const vx = b.x - cx, vy = b.y - cy;
+      const d = Math.hypot(vx, vy) || 1;
+      const nx = vx/d, ny = vy/d;
+      const vn = b.vx*nx + b.vy*ny;
+      if(vn < 0){
+        b.vx -= 2*vn*nx;
+        b.vy -= 2*vn*ny;
+      }
+      updateHud();
+      // All 5 down?
+      if(s.targets.every(tt => !tt.alive)){
+        s.score += 5000;
+        setTimeout(()=>{ for(const tt of s.targets) tt.alive = true; }, 0);
+        SFX.allTargets();
+        updateHud();
+      }
+    }
+  }
+
+  // Flippers
+  for(const f of s.flippers) collideBallFlipper(b, f);
+}
+
+function collideBallSegment(b, a, c){
+  const dx = c.x - a.x, dy = c.y - a.y;
+  const len2 = dx*dx + dy*dy;
+  const t = ((b.x - a.x)*dx + (b.y - a.y)*dy) / len2;
+  const tc = Math.max(0, Math.min(1, t));
+  const px = a.x + tc*dx, py = a.y + tc*dy;
+  const ex = b.x - px, ey = b.y - py;
+  const d = Math.hypot(ex, ey);
+  if(d < BALL_R && d > 0.001){
+    const nx = ex/d, ny = ey/d;
+    b.x = px + nx*BALL_R;
+    b.y = py + ny*BALL_R;
+    const vn = b.vx*nx + b.vy*ny;
+    if(vn < 0){
+      b.vx -= 2*vn*nx * RESTITUTION;
+      b.vy -= 2*vn*ny * RESTITUTION;
+      b.vx *= 0.96; b.vy *= 0.96;
+    }
+    return { nx, ny };
+  }
+  return null;
+}
+
+function collideBallFlipper(b, f){
+  const tipX = f.pivotX + Math.cos(f.angle) * f.length;
+  const tipY = f.pivotY + Math.sin(f.angle) * f.length;
+  const dx = tipX - f.pivotX, dy = tipY - f.pivotY;
+  const len2 = dx*dx + dy*dy;
+  const t = ((b.x - f.pivotX)*dx + (b.y - f.pivotY)*dy) / len2;
+  const tc = Math.max(0, Math.min(1, t));
+  const px = f.pivotX + tc*dx, py = f.pivotY + tc*dy;
+  const ex = b.x - px, ey = b.y - py;
+  const d = Math.hypot(ex, ey) || 0.001;
+  const min = BALL_R + f.width/2;
+  if(d < min){
+    const nx = ex/d, ny = ey/d;
+    b.x = px + nx*min;
+    b.y = py + ny*min;
+    // Reflect
+    const vn = b.vx*nx + b.vy*ny;
+    if(vn < 0){
+      b.vx -= 2*vn*nx;
+      b.vy -= 2*vn*ny;
+      b.vx *= 0.9; b.vy *= 0.9;
+    }
+    // Flipper impulse when it's actively swinging upward
+    const isSwingingUp = (f.active && Math.abs(f.angularVel) > 0.05) ||
+                        (!f.active && Math.abs(f.angularVel) > 0.05 && false);
+    if(isSwingingUp){
+      const r = tc * f.length;
+      const tipVel = Math.abs(f.angularVel) * r;
+      // Add upward impulse + sideways toward center
+      const impulse = 2 + tipVel * 1.6;
+      b.vy -= impulse;
+      if(f.side === 'L') b.vx += impulse * 0.4;
+      else b.vx -= impulse * 0.4;
+      SFX.flip();
+    }
+    // Cap speed
+    const sp = Math.hypot(b.vx, b.vy);
+    if(sp > MAX_SPEED){ b.vx *= MAX_SPEED/sp; b.vy *= MAX_SPEED/sp; }
+  }
+}
+
+/* ====== Plunger ====== */
+function releasePlunger(){
+  const s = state;
+  if(!s.plunger.charging) return;
+  const charge = s.plunger.charge;
+  s.plunger.charging = false;
+  if(s.ball.onPlunger && charge > 0.05){
+    s.ball.onPlunger = false;
+    // Minimum launch of -15 guarantees the ball clears the lane and hits the
+    // top-right diagonal that redirects it into the main field. Larger charge
+    // gives a more energetic entry.
+    s.ball.vy = -15 - charge * 7;   // 15..22
+    s.ball.vx = 0;
+    SFX.launch();
+  }
+  s.plunger.charge = 0;
+  s.plunger.flash = 1;
+}
+
+/* ====== Ball lost ====== */
+function drainBall(){
+  const s = state;
+  s.ballsLeft--;
+  SFX.drain();
+  // Gradually harder each ball
+  s.gravityMult = 1.0 + (3 - s.ballsLeft) * 0.04;
+  updateHud();
+  if(s.ballsLeft <= 0){
+    endGame();
+    return;
+  }
+  spawnBallOnPlunger();
+}
+
+function endGame(){
+  running = false;
+  const s = state;
+  s.score += s.bumpBonus * 10;
+  const prev = parseInt(localStorage.getItem(HS_KEY)||'0',10);
+  if(s.score > prev) localStorage.setItem(HS_KEY, s.score);
+  $('finalScore').textContent = s.score;
+  $('goNote').textContent = 'בונוס במפרים: ' + (s.bumpBonus * 10);
+  $('hsNote').innerHTML = (s.score > prev && s.score > 0) ? '🏆 שיא חדש!' : 'שיא: ' + prev;
+  gameOverShown = true;
+  setTimeout(()=>$('gameOver').classList.add('active'), 500);
+}
+
+/* ====== Drawing ====== */
+function draw(){
+  ctx2d.fillStyle = '#04010e';
+  ctx2d.fillRect(0,0,DESIGN_W,DESIGN_H);
+
+  // Playfield background gradient
+  const bgGrad = ctx2d.createRadialGradient(170, 300, 40, 170, 300, 320);
+  bgGrad.addColorStop(0, '#1a0a3a');
+  bgGrad.addColorStop(0.5, '#0a0426');
+  bgGrad.addColorStop(1, '#020108');
+  ctx2d.fillStyle = bgGrad;
+  ctx2d.fillRect(20, 40, 300, DESIGN_H-40);
+  ctx2d.fillStyle = '#050114';
+  ctx2d.fillRect(300, 40, 20, DESIGN_H-40);
+
+  // Background brand labels
+  ctx2d.fillStyle = 'rgba(255,233,74,0.06)';
+  ctx2d.font = 'bold 44px "Segoe UI",sans-serif';
+  ctx2d.textAlign = 'center';
+  ctx2d.fillText('PINBALL', DESIGN_W/2, 380);
+  ctx2d.font = 'bold 10px "Segoe UI",sans-serif';
+  ctx2d.fillStyle = 'rgba(0,230,255,0.35)';
+  ctx2d.fillText('★ ARCADYA ★', DESIGN_W/2, 340);
+
+  // Decorative "ramp arc" in upper-left quadrant
+  ctx2d.strokeStyle = 'rgba(61,255,154,0.55)';
+  ctx2d.lineWidth = 3;
+  ctx2d.shadowColor = '#3dff9a'; ctx2d.shadowBlur = 8;
+  ctx2d.beginPath();
+  ctx2d.arc(45, 90, 45, 0, Math.PI/2);
+  ctx2d.stroke();
+  // arrow on the ramp
+  ctx2d.fillStyle = '#3dff9a';
+  ctx2d.beginPath();
+  ctx2d.moveTo(38, 140); ctx2d.lineTo(50, 135); ctx2d.lineTo(50, 145); ctx2d.closePath();
+  ctx2d.fill();
+  ctx2d.shadowBlur = 0;
+
+  // Decorative "ramp arc" in upper-right (near launcher entry)
+  ctx2d.strokeStyle = 'rgba(255,138,61,0.4)';
+  ctx2d.lineWidth = 3;
+  ctx2d.shadowColor = '#ff8a3d'; ctx2d.shadowBlur = 6;
+  ctx2d.beginPath();
+  ctx2d.arc(275, 100, 18, 0, Math.PI*2);
+  ctx2d.stroke();
+  ctx2d.shadowBlur = 0;
+
+  // LED lights along the outer rails
+  const ledColors = ['#ff2d95','#ffe94a','#00e6ff','#3dff9a','#b14bff'];
+  const nowT = performance.now()/280;
+  // Left rail LEDs
+  for(let y=60; y<360; y+=22){
+    const i = Math.floor((y + nowT*15) / 22) % ledColors.length;
+    const col = ledColors[(Math.abs(i)+5)%5];
+    ctx2d.fillStyle = col;
+    ctx2d.shadowColor = col; ctx2d.shadowBlur = 5;
+    ctx2d.beginPath(); ctx2d.arc(26, y, 1.8, 0, Math.PI*2); ctx2d.fill();
+  }
+  // Right rail LEDs (before slingshot)
+  for(let y=120; y<360; y+=22){
+    const i = Math.floor((y - nowT*15) / 22) % ledColors.length;
+    const col = ledColors[(Math.abs(i)+2)%5];
+    ctx2d.fillStyle = col;
+    ctx2d.shadowColor = col; ctx2d.shadowBlur = 5;
+    ctx2d.beginPath(); ctx2d.arc(294, y, 1.8, 0, Math.PI*2); ctx2d.fill();
+  }
+  ctx2d.shadowBlur = 0;
+
+  // Slingshots (filled triangles)
+  ctx2d.fillStyle = 'rgba(255,138,61,0.26)';
+  ctx2d.strokeStyle = '#ff8a3d';
+  ctx2d.lineWidth = 2;
+  ctx2d.shadowColor = '#ff8a3d'; ctx2d.shadowBlur = 10;
+  ctx2d.beginPath();
+  ctx2d.moveTo(20, 370); ctx2d.lineTo(85, 450); ctx2d.lineTo(20, 450);
+  ctx2d.closePath(); ctx2d.fill(); ctx2d.stroke();
+  ctx2d.beginPath();
+  ctx2d.moveTo(300, 370); ctx2d.lineTo(235, 450); ctx2d.lineTo(300, 450);
+  ctx2d.closePath(); ctx2d.fill(); ctx2d.stroke();
+  ctx2d.shadowBlur = 0;
+  // Little rivets on slingshots
+  ctx2d.fillStyle = '#fff38a';
+  [[35,430],[60,435],[265,430],[280,435]].forEach(([x,y])=>{
+    ctx2d.beginPath(); ctx2d.arc(x, y, 1.5, 0, Math.PI*2); ctx2d.fill();
+  });
+
+  // Walls
+  ctx2d.strokeStyle = '#b14bff';
+  ctx2d.lineWidth = 3;
+  ctx2d.shadowColor = '#b14bff'; ctx2d.shadowBlur = 8;
+  for(const w of WALLS){
+    if(w.sling) continue;
+    ctx2d.beginPath();
+    ctx2d.moveTo(w.a.x, w.a.y);
+    ctx2d.lineTo(w.b.x, w.b.y);
+    ctx2d.stroke();
+  }
+  ctx2d.shadowBlur = 0;
+
+  // Bumpers (detailed: outer ring, inner cap, score text)
+  for(const bmp of state.bumpers){
+    const glow = 1 + bmp.flash * 1.2;
+    // outer ring
+    ctx2d.fillStyle = '#8a1246';
+    ctx2d.shadowColor = '#ff2d95'; ctx2d.shadowBlur = 16 * glow;
+    ctx2d.beginPath(); ctx2d.arc(bmp.x, bmp.y, bmp.r, 0, Math.PI*2); ctx2d.fill();
+    // inner cap
+    const capGrad = ctx2d.createRadialGradient(bmp.x - bmp.r*0.3, bmp.y - bmp.r*0.3, 2, bmp.x, bmp.y, bmp.r*0.85);
+    capGrad.addColorStop(0, bmp.flash > 0.5 ? '#fff' : '#ffbde0');
+    capGrad.addColorStop(0.5, '#ff2d95');
+    capGrad.addColorStop(1, '#9a1050');
+    ctx2d.fillStyle = capGrad;
+    ctx2d.beginPath(); ctx2d.arc(bmp.x, bmp.y, bmp.r*0.85, 0, Math.PI*2); ctx2d.fill();
+    // highlight
+    ctx2d.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx2d.beginPath(); ctx2d.arc(bmp.x - bmp.r*0.35, bmp.y - bmp.r*0.35, bmp.r*0.2, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    // score text
+    ctx2d.fillStyle = '#fff';
+    ctx2d.font = 'bold 9px "Segoe UI",sans-serif';
+    ctx2d.textAlign = 'center';
+    ctx2d.fillText('100', bmp.x, bmp.y + 3);
+  }
+
+  // Targets (drop targets) with 3D look
+  for(const t of state.targets){
+    if(!t.alive){
+      // "slot" where target was
+      ctx2d.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx2d.fillRect(t.x - t.w/2, t.y - 1, t.w, 2);
+      continue;
+    }
+    ctx2d.fillStyle = '#fff';
+    ctx2d.shadowColor = '#fff'; ctx2d.shadowBlur = 8;
+    ctx2d.fillRect(t.x - t.w/2, t.y - t.h/2, t.w, t.h);
+    ctx2d.shadowBlur = 0;
+    ctx2d.fillStyle = '#b14bff';
+    ctx2d.fillRect(t.x - t.w/2 + 2, t.y - t.h/2 + 2, t.w-4, t.h-4);
+    ctx2d.fillStyle = '#fff';
+    ctx2d.fillRect(t.x - t.w/2 + 3, t.y - t.h/2 + 3, t.w-6, 1);
+  }
+
+  // Flippers
+  for(const f of state.flippers){
+    ctx2d.save();
+    ctx2d.translate(f.pivotX, f.pivotY);
+    ctx2d.rotate(f.angle);
+    // main body
+    ctx2d.fillStyle = f.active ? '#ffe94a' : '#00e6ff';
+    ctx2d.shadowColor = ctx2d.fillStyle; ctx2d.shadowBlur = 10;
+    ctx2d.beginPath();
+    ctx2d.arc(0, 0, f.width/2 + 2, Math.PI/2, -Math.PI/2, true);
+    ctx2d.arc(f.length, 0, f.width/2 - 1, -Math.PI/2, Math.PI/2, true);
+    ctx2d.closePath();
+    ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+    // highlight stripe
+    ctx2d.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx2d.fillRect(5, -f.width/2 + 1, f.length - 10, 1.5);
+    // pivot
+    ctx2d.fillStyle = '#3d1a00';
+    ctx2d.beginPath(); ctx2d.arc(0,0, 2.5, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.restore();
+  }
+
+  // Plunger
+  drawPlunger();
+
+  // Ball
+  const b = state.ball;
+  if(b){
+    const grad = ctx2d.createRadialGradient(b.x - 2, b.y - 2, 1, b.x, b.y, BALL_R*1.3);
+    grad.addColorStop(0,'#fff'); grad.addColorStop(0.5,'#dce6f0'); grad.addColorStop(1,'#666');
+    ctx2d.fillStyle = grad;
+    ctx2d.shadowColor = '#ffffff'; ctx2d.shadowBlur = 10;
+    ctx2d.beginPath(); ctx2d.arc(b.x, b.y, BALL_R, 0, Math.PI*2); ctx2d.fill();
+    ctx2d.shadowBlur = 0;
+  }
+
+  // Launcher lane chrome
+  ctx2d.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx2d.lineWidth = 1;
+  for(let y=120;y<500;y+=20){
+    ctx2d.beginPath(); ctx2d.moveTo(304, y); ctx2d.lineTo(316, y); ctx2d.stroke();
+  }
+}
+
+function drawPlunger(){
+  const s = state;
+  const base = 555;
+  const y = base - s.plunger.charge * 18;
+  ctx2d.fillStyle = '#ff8a3d';
+  ctx2d.shadowColor = '#ff8a3d'; ctx2d.shadowBlur = 6;
+  ctx2d.fillRect(304, y, 12, 12);
+  ctx2d.fillStyle = '#4a7bff';
+  for(let i=0;i<3;i++){
+    ctx2d.fillRect(307, y + 14 + i*3, 6, 1.5);
+  }
+  ctx2d.shadowBlur = 0;
+  // Charge indicator above launcher
+  if(s.plunger.charging){
+    const h = s.plunger.charge * 24;
+    ctx2d.fillStyle = 'rgba(61,255,154,0.8)';
+    ctx2d.fillRect(305, base - 24, 10, 24);
+    ctx2d.fillStyle = '#3dff9a';
+    ctx2d.fillRect(305, base - h, 10, h);
+  }
+}
+
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+/* ====== Input ====== */
+function setRightFlip(on){ if(!state) return; state.flippers[1].active = on; if(on) SFX.click(); }
+function setLeftFlip(on){  if(!state) return; state.flippers[0].active = on; if(on) SFX.click(); }
+function setPlunger(on){
+  if(!state) return;
+  if(on){ state.plunger.charging = true; state.input.plungerHeld = true; }
+  else {
+    state.input.plungerHeld = false;
+    releasePlunger();
+  }
+}
+
+document.querySelectorAll('.dpad [data-dir]').forEach(btn => {
+  const dir = btn.dataset.dir;
+  const down = e => { e.preventDefault();
+    if(dir === 'right') setRightFlip(true);
+    if(dir === 'down')  setPlunger(true);
+  };
+  const up   = e => { e.preventDefault();
+    if(dir === 'right') setRightFlip(false);
+    if(dir === 'down')  setPlunger(false);
+  };
+  btn.addEventListener('touchstart', down, {passive:false});
+  btn.addEventListener('touchend',   up,   {passive:false});
+  btn.addEventListener('touchcancel',up,   {passive:false});
+  btn.addEventListener('mousedown', down);
+  btn.addEventListener('mouseup',   up);
+  btn.addEventListener('mouseleave',up);
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+});
+
+document.addEventListener('keydown', e=>{
+  if(!state) return;
+  if(e.repeat) return;
+  if(e.key === 'ArrowRight') setRightFlip(true);
+  else if(e.key === 'ArrowDown') setPlunger(true);
+  else if(e.key === ' ' || e.key === 'ArrowLeft') { e.preventDefault(); setLeftFlip(true); }
+  else if(e.key === 'p' || e.key === 'P') togglePause();
+});
+document.addEventListener('keyup', e=>{
+  if(!state) return;
+  if(e.key === 'ArrowRight') setRightFlip(false);
+  if(e.key === 'ArrowDown')  setPlunger(false);
+  if(e.key === ' ' || e.key === 'ArrowLeft') setLeftFlip(false);
+});
+
+const actionBtn = $('btnAction');
+function actionPress(e){ if(e) e.preventDefault(); setLeftFlip(true); actionBtn.style.filter='brightness(1.2)'; }
+function actionRelease(){ setLeftFlip(false); actionBtn.style.filter=''; }
+actionBtn.addEventListener('touchstart', actionPress, {passive:false});
+actionBtn.addEventListener('touchend',   e=>{e.preventDefault();actionRelease();}, {passive:false});
+actionBtn.addEventListener('mousedown', actionPress);
+actionBtn.addEventListener('mouseup',   actionRelease);
+actionBtn.addEventListener('mouseleave',actionRelease);
+actionBtn.addEventListener('contextmenu', e => e.preventDefault());
+</script>
+<script src="../assets/arcadya-rotate.js"></script>
+</body>
+</html>

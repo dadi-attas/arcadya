@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0320" />
+<title>ARCADYA — חבילת משחקי ארקייד</title>
+<meta name="description" content="חבילת משחקי ארקייד קלאסיים: Snake, Pong, Pac-Man, Tetris, Invaders, Frogger, Pinball ועוד. מותאם למובייל ולטאבלט." />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="assets/icons/icon.svg" />
+<link rel="apple-touch-icon" href="assets/icons/icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="ARCADYA" />
+<meta name="mobile-web-app-capable" content="yes" />
+<style>
+  :root {
+    --bg-0: #05010f;
+    --bg-1: #0b0320;
+    --bg-2: #140640;
+    --neon-pink: #ff2d95;
+    --neon-cyan: #00e6ff;
+    --neon-purple: #b14bff;
+    --neon-yellow: #ffe94a;
+    --neon-green: #3dff9a;
+    --text: #ffffff;
+    --muted: #a79ec9;
+    --danger: #ff4a6b;
+    --ok: #3dff9a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Heebo", Tahoma, sans-serif;
+    background: var(--bg-0);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ===== App shell — portrait container, centered on desktop ===== */
+  #app {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(1200px 800px at 50% -10%, rgba(177,75,255,0.22), transparent 60%),
+      radial-gradient(900px 600px at 50% 110%, rgba(0,230,255,0.18), transparent 60%),
+      linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+  }
+  #stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 520px;
+    max-height: 100%;
+    background: linear-gradient(180deg, #0c0426 0%, #070116 100%);
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.6);
+  }
+  @media (min-width: 900px) {
+    #stage {
+      max-width: 440px;
+      max-height: min(900px, 95vh);
+      border-radius: 28px;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+  }
+
+  .screen {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+  }
+  .screen.active { display: flex; }
+
+  /* ===== ARCADYA Intro (after brand intro) ===== */
+  #intro {
+    align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 50%, #1a0550 0%, #05010f 80%);
+  }
+  .logo-wrap {
+    position: relative;
+    text-align: center;
+    animation: popIn 0.6s ease-out both;
+  }
+  .logo-title {
+    font-size: clamp(44px, 13vw, 78px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow:
+      0 0 8px #fff,
+      0 0 18px var(--neon-pink),
+      0 0 36px var(--neon-purple),
+      0 0 60px var(--neon-cyan);
+    animation: neonFlicker 2.5s infinite alternate;
+  }
+  .logo-sub {
+    margin-top: 10px;
+    color: var(--neon-cyan);
+    letter-spacing: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+  .logo-bars {
+    display: flex; gap: 6px; justify-content: center; margin-top: 22px;
+  }
+  .logo-bars span {
+    width: 8px; height: 22px; border-radius: 2px;
+    background: var(--neon-pink);
+    box-shadow: 0 0 10px var(--neon-pink);
+    animation: barBounce 0.9s infinite ease-in-out;
+  }
+  .logo-bars span:nth-child(2) { background: var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple); animation-delay: .1s; }
+  .logo-bars span:nth-child(3) { background: var(--neon-cyan);   box-shadow: 0 0 10px var(--neon-cyan);   animation-delay: .2s; }
+  .logo-bars span:nth-child(4) { background: var(--neon-yellow); box-shadow: 0 0 10px var(--neon-yellow); animation-delay: .3s; }
+  .logo-bars span:nth-child(5) { background: var(--neon-green);  box-shadow: 0 0 10px var(--neon-green);  animation-delay: .4s; }
+
+  .skip-btn {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: var(--muted);
+    padding: 8px 18px; border-radius: 999px;
+    font-size: 13px; cursor: pointer;
+    letter-spacing: 1px;
+  }
+  .skip-btn:active { transform: translateX(-50%) scale(0.96); }
+
+  /* ===== Main menu ===== */
+  #menu { padding: 14px 14px 18px; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 4px 14px;
+  }
+  .exit-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(255,74,107,0.12);
+    border: 1px solid rgba(255,74,107,0.35);
+    color: var(--danger);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer;
+    transition: transform .08s;
+  }
+  .exit-btn:active { transform: scale(0.92); }
+  .settings-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(0,230,255,0.10);
+    border: 1px solid rgba(0,230,255,0.30);
+    color: var(--neon-cyan);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer;
+    transition: transform .08s;
+  }
+  .settings-btn:active { transform: scale(0.92); }
+  .brand {
+    font-size: 26px; font-weight: 900; letter-spacing: 4px;
+    color: #fff;
+    text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-purple);
+  }
+  .brand-spacer { width: 40px; }
+
+  /* ===== Settings modal ===== */
+  .settings-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .settings-row:last-of-type { border-bottom: none; }
+  .settings-row .lbl { font-size: 14px; color: #fff; font-weight: 700; }
+  .settings-row .desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .settings-row .lbl-wrap { text-align: right; }
+  .toggle {
+    width: 48px; height: 26px; border-radius: 999px;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid rgba(255,255,255,0.18);
+    position: relative; cursor: pointer;
+    transition: background .15s;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute; top: 2px; right: 2px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff;
+    transition: right .15s, background .15s;
+  }
+  .toggle.on { background: rgba(61,255,154,0.4); border-color: rgba(61,255,154,0.6); }
+  .toggle.on::after { right: 24px; background: #3dff9a; }
+  .reset-btn {
+    background: rgba(255,74,107,0.15); border: 1px solid rgba(255,74,107,0.4);
+    color: var(--danger); font-weight: 800; font-size: 12px;
+    padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    transition: transform .08s;
+  }
+  .reset-btn:active { transform: scale(0.95); }
+  .settings-footer {
+    margin-top: 16px; padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+    color: var(--muted); font-size: 11px; letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  .settings-footer .ttasia {
+    color: var(--neon-cyan); font-weight: 700;
+  }
+  .modal-box.settings { width: 88%; max-width: 360px; padding: 20px 18px; }
+  .modal-box.settings .modal-title { margin-bottom: 8px; }
+
+  .games-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    overflow-y: auto;
+    padding: 4px 2px 10px;
+    scrollbar-width: thin;
+  }
+  .game-card {
+    aspect-ratio: 1 / 1.1;
+    border-radius: 18px;
+    position: relative;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+    transition: transform .08s, box-shadow .2s;
+  }
+  .game-card:active { transform: scale(0.96); }
+  .game-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: var(--card-glow, radial-gradient(circle at 50% 0%, rgba(255,45,149,0.25), transparent 60%));
+    pointer-events: none;
+  }
+  .game-card .ico {
+    font-size: 42px;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+    z-index: 1;
+  }
+  .game-card .name {
+    font-size: 14px; font-weight: 800; letter-spacing: 1px;
+    z-index: 1;
+    text-transform: uppercase;
+  }
+  .game-card.soon { opacity: 0.45; cursor: not-allowed; }
+  .game-card.soon::after {
+    content: 'בקרוב';
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(0,0,0,0.55);
+    color: var(--neon-yellow);
+    font-size: 10px; padding: 3px 7px; border-radius: 6px;
+    letter-spacing: 1px;
+    z-index: 2;
+  }
+
+  /* ===== Modal ===== */
+  .modal {
+    position: absolute; inset: 0;
+    background: rgba(5,1,15,0.82);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 50;
+    animation: fadeIn .15s ease-out;
+  }
+  .modal.active { display: flex; }
+  .modal-box {
+    width: 82%; max-width: 320px;
+    background: linear-gradient(180deg, #1a0946 0%, #0c0326 100%);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 20px;
+    padding: 24px 20px 20px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(177,75,255,0.35);
+  }
+  .modal-title {
+    font-size: 18px; font-weight: 800; margin-bottom: 18px;
+  }
+  .modal-actions {
+    display: flex; gap: 10px; justify-content: center;
+  }
+  .btn {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 12px;
+    font-size: 15px; font-weight: 800;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: transform .08s;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-yes {
+    background: linear-gradient(180deg, #ff2d95, #b14bff);
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(255,45,149,0.4);
+  }
+  .btn-no {
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  /* ===== Landscape rotate prompt =====
+     Phones in landscape break the portrait layout — show a friendly prompt. */
+  #rotatePrompt {
+    display: none;
+    position: fixed; inset: 0;
+    background: #05010f;
+    z-index: 99998;
+    align-items: center; justify-content: center;
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px;
+    text-align: center;
+  }
+  #rotatePrompt.show { display: flex; }
+  .rotate-icon {
+    width: 70px; height: 70px;
+    border: 3px solid var(--neon-cyan);
+    border-radius: 12px;
+    position: relative;
+    animation: rotateAnim 2.4s infinite ease-in-out;
+    box-shadow: 0 0 18px rgba(0,230,255,0.6);
+  }
+  .rotate-icon::before {
+    content: ''; position: absolute;
+    top: 6px; left: 50%; transform: translateX(-50%);
+    width: 18px; height: 3px; border-radius: 2px;
+    background: var(--neon-cyan);
+  }
+  .rotate-icon::after {
+    content: ''; position: absolute;
+    bottom: 6px; left: 50%; transform: translateX(-50%);
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--neon-cyan);
+  }
+  @keyframes rotateAnim {
+    0%, 100% { transform: rotate(0); }
+    25% { transform: rotate(-90deg); }
+    50% { transform: rotate(-90deg); }
+    75% { transform: rotate(0); }
+  }
+  .rotate-text {
+    color: #fff; font-size: 18px; font-weight: 800; letter-spacing: 2px;
+  }
+  .rotate-sub {
+    color: var(--muted); font-size: 13px;
+  }
+  /* Only show prompt on small landscape (phones, not full-size landscape monitors) */
+  @media (orientation: landscape) and (max-height: 500px) {
+    #rotatePrompt { display: flex; }
+  }
+
+  /* ===== Onboarding ===== */
+  #onboarding {
+    align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 30%, #1a0550 0%, #05010f 80%);
+    padding: 24px;
+  }
+  .onb-card {
+    width: 100%; max-width: 360px;
+    text-align: center;
+    animation: popIn 0.4s ease-out both;
+  }
+  .onb-title {
+    font-size: 26px; font-weight: 900; letter-spacing: 4px;
+    color: #fff; margin-bottom: 6px;
+    text-shadow: 0 0 12px var(--neon-purple);
+  }
+  .onb-sub {
+    color: var(--neon-cyan); font-size: 12px; letter-spacing: 4px;
+    margin-bottom: 22px;
+  }
+  .onb-tips {
+    text-align: right;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+  }
+  .onb-tip {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 14px; font-size: 13px; line-height: 1.5;
+  }
+  .onb-tip:last-child { margin-bottom: 0; }
+  .onb-tip .ico {
+    flex: 0 0 36px; height: 36px;
+    background: rgba(177,75,255,0.15);
+    border: 1px solid rgba(177,75,255,0.4);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--neon-purple);
+  }
+  .onb-tip .txt { flex: 1; color: #fff; }
+  .onb-tip .txt b { color: var(--neon-yellow); }
+  .onb-start {
+    width: 100%; padding: 14px 0;
+    background: linear-gradient(180deg, #ff2d95, #b14bff);
+    color: #fff; font-weight: 800; font-size: 15px;
+    letter-spacing: 3px;
+    border: none; border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255,45,149,0.4);
+    transition: transform .08s;
+  }
+  .onb-start:active { transform: scale(0.97); }
+
+  /* ===== Animations ===== */
+  @keyframes popIn {
+    from { transform: scale(0.85); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  @keyframes neonFlicker {
+    0%, 96%, 100% { opacity: 1; }
+    97% { opacity: 0.7; }
+    98% { opacity: 1; }
+    99% { opacity: 0.85; }
+  }
+  @keyframes barBounce {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1.4); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<!-- Landscape rotation prompt — auto-shown on small landscape via CSS media query -->
+<div id="rotatePrompt">
+  <div class="rotate-icon"></div>
+  <div class="rotate-text">סובב את המכשיר</div>
+  <div class="rotate-sub">ARCADYA מותאם למצב אנכי</div>
+</div>
+
+<div id="app">
+  <div id="stage">
+
+    <!-- Onboarding (first time only) -->
+    <section id="onboarding" class="screen">
+      <div class="onb-card">
+        <div class="onb-title">ברוך הבא ל־ARCADYA</div>
+        <div class="onb-sub">12 משחקי ארקייד · שליטה אחידה</div>
+        <div class="onb-tips">
+          <div class="onb-tip">
+            <div class="ico">🎮</div>
+            <div class="txt">לכל המשחקים <b>שליטה זהה</b> — חצים לכיוונים, כפתור עגול לפעולה (ירי, קפיצה, סיבוב וכו׳)</div>
+          </div>
+          <div class="onb-tip">
+            <div class="ico">⏸</div>
+            <div class="txt">בכל משחק תמצא <b>פאוז</b> בפינה הימנית למעלה ו<b>יציאה</b> בפינה השמאלית למעלה</div>
+          </div>
+          <div class="onb-tip">
+            <div class="ico">🏆</div>
+            <div class="txt"><b>השיא שלך</b> נשמר אוטומטית בכל משחק. נסה לשבור אותו!</div>
+          </div>
+          <div class="onb-tip">
+            <div class="ico">⚙</div>
+            <div class="txt">בהגדרות אפשר <b>לכבות סאונד</b> או <b>לאפס שיאים</b></div>
+          </div>
+        </div>
+        <button id="onbStart" class="onb-start">בוא נתחיל</button>
+      </div>
+    </section>
+
+    <!-- ARCADYA intro (plays after brand intro) -->
+    <section id="intro" class="screen">
+      <div class="logo-wrap">
+        <div class="logo-title">ARCADYA</div>
+        <div class="logo-sub">PLAY · ON</div>
+        <div class="logo-bars">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+      <button id="skipIntro" class="skip-btn">דלג</button>
+    </section>
+
+    <!-- Main menu -->
+    <section id="menu" class="screen">
+      <div class="topbar">
+        <button id="exitApp" class="exit-btn" aria-label="יציאה">✕</button>
+        <div class="brand">ARCADYA</div>
+        <button id="settingsBtn" class="settings-btn" aria-label="הגדרות">⚙</button>
+      </div>
+      <div class="games-grid" id="gamesGrid"></div>
+    </section>
+
+    <!-- Exit confirm modal -->
+    <div id="exitModal" class="modal" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <div class="modal-title">לצאת מ־ARCADYA?</div>
+        <div class="modal-actions">
+          <button id="exitYes" class="btn btn-yes">כן</button>
+          <button id="exitNo" class="btn btn-no">לא</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div id="settingsModal" class="modal" role="dialog" aria-modal="true">
+      <div class="modal-box settings">
+        <div class="modal-title">הגדרות</div>
+        <div class="settings-row">
+          <div class="lbl-wrap">
+            <div class="lbl">סאונד</div>
+            <div class="desc">צלילי כפתורים ואפקטים</div>
+          </div>
+          <div id="soundToggle" class="toggle"></div>
+        </div>
+        <div class="settings-row">
+          <div class="lbl-wrap">
+            <div class="lbl">איפוס שיאים</div>
+            <div class="desc">מוחק את כל השיאים שצברת</div>
+          </div>
+          <button id="resetScoresBtn" class="reset-btn">אפס</button>
+        </div>
+        <div class="settings-footer">
+          ARCADYA · גרסה 1.0<br>
+          עוצב על ידי <span class="ttasia">TTASiA</span>
+        </div>
+        <div class="modal-actions" style="margin-top:14px">
+          <button id="settingsClose" class="btn btn-no">סגור</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reset scores confirm -->
+    <div id="resetConfirmModal" class="modal" role="dialog" aria-modal="true">
+      <div class="modal-box">
+        <div class="modal-title">לאפס את כל השיאים?</div>
+        <div class="modal-actions">
+          <button id="resetYes" class="btn btn-yes">כן, אפס</button>
+          <button id="resetNo" class="btn btn-no">לא</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="games.js"></script>
+<script src="assets/logo/brand-intro.js"></script>
+<script>
+  /* ===== Session / intro logic =====
+     Brand intro plays once per session via the shared TTASiA brand-intro.
+     After completion we reveal the ARCADYA main menu. */
+  const INTRO_SESSION_KEY = 'arcadyaIntroSessionShown';
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id) => {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $(id).classList.add('active');
+  };
+
+  /* ===== Menu build ===== */
+  function buildMenu() {
+    const grid = $('gamesGrid');
+    grid.innerHTML = '';
+    ARCADYA_GAMES.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'game-card' + (g.available ? '' : ' soon');
+      card.style.setProperty('--card-glow',
+        `radial-gradient(circle at 50% 0%, ${g.color}55, transparent 65%)`);
+      card.style.borderColor = g.color + '55';
+      card.innerHTML = `
+        <div class="ico" style="color:${g.color}">${g.icon}</div>
+        <div class="name">${g.name}</div>
+      `;
+      if (g.available) {
+        card.addEventListener('click', () => {
+          window.location.href = 'games/' + g.file;
+        });
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  function showMenu() {
+    buildMenu();
+    show('menu');
+  }
+
+  /* ===== Exit flow ===== */
+  $('exitApp').addEventListener('click', () => $('exitModal').classList.add('active'));
+  $('exitNo').addEventListener('click', () => $('exitModal').classList.remove('active'));
+  $('exitYes').addEventListener('click', () => {
+    sessionStorage.removeItem(INTRO_SESSION_KEY);
+    try { window.close(); } catch (e) {}
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#a79ec9;font-family:sans-serif;letter-spacing:2px">להתראות</div>';
+  });
+
+  /* ===== Settings ===== */
+  function isSoundOn(){
+    return localStorage.getItem('arcadya_sound_enabled') !== 'false';
+  }
+  function refreshSoundToggle(){
+    $('soundToggle').classList.toggle('on', isSoundOn());
+  }
+  $('settingsBtn').addEventListener('click', () => {
+    refreshSoundToggle();
+    $('settingsModal').classList.add('active');
+  });
+  $('settingsClose').addEventListener('click', () => {
+    $('settingsModal').classList.remove('active');
+  });
+  $('soundToggle').addEventListener('click', () => {
+    const newOn = !isSoundOn();
+    localStorage.setItem('arcadya_sound_enabled', newOn ? 'true' : 'false');
+    refreshSoundToggle();
+  });
+  $('resetScoresBtn').addEventListener('click', () => {
+    $('resetConfirmModal').classList.add('active');
+  });
+  $('resetNo').addEventListener('click', () => {
+    $('resetConfirmModal').classList.remove('active');
+  });
+  $('resetYes').addEventListener('click', () => {
+    // Wipe every arcadya_* key EXCEPT the global sound preference
+    const keep = localStorage.getItem('arcadya_sound_enabled');
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('arcadya_') && k !== 'arcadya_sound_enabled') {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    if (keep !== null) localStorage.setItem('arcadya_sound_enabled', keep);
+    $('resetConfirmModal').classList.remove('active');
+    $('settingsModal').classList.remove('active');
+  });
+
+  /* ===== ARCADYA intro (after brand) ===== */
+  const ARCADYA_INTRO_DURATION = 3000;
+  const ONBOARDING_KEY = 'arcadya_onboarding_done';
+  let arcadyaIntroTimer = null;
+  function showArcadyaIntro(){
+    show('intro');
+    arcadyaIntroTimer = setTimeout(finishArcadyaIntro, ARCADYA_INTRO_DURATION);
+  }
+  function finishArcadyaIntro(){
+    if (arcadyaIntroTimer) { clearTimeout(arcadyaIntroTimer); arcadyaIntroTimer = null; }
+    // First-time onboarding — show once, then never again
+    if (!localStorage.getItem(ONBOARDING_KEY)) {
+      show('onboarding');
+    } else {
+      showMenu();
+    }
+  }
+  $('skipIntro').addEventListener('click', finishArcadyaIntro);
+  $('onbStart').addEventListener('click', () => {
+    localStorage.setItem(ONBOARDING_KEY, 'true');
+    showMenu();
+  });
+
+  /* ===== Boot =====
+     Sequence: brand intro (TTASiA) → ARCADYA intro → main menu.
+     When returning from a game, ?home=1 is appended to the URL — we skip
+     both intros and jump straight to the menu. Otherwise the intros play
+     once per session. */
+  (function boot(){
+    const backFromGame = new URLSearchParams(location.search).has('home');
+    const sessionShown = sessionStorage.getItem(INTRO_SESSION_KEY);
+    const skipAll = backFromGame || sessionShown;
+
+    if (skipAll) {
+      sessionStorage.setItem(INTRO_SESSION_KEY, 'true');
+      showMenu();
+      return;
+    }
+
+    const runArcadyaIntro = () => {
+      sessionStorage.setItem(INTRO_SESSION_KEY, 'true');
+      showArcadyaIntro();
+    };
+    // fresh session: ensure brand intro plays once
+    localStorage.removeItem('arcadya_brand_intro_seen');
+    if (typeof initBrandIntro === 'function') {
+      initBrandIntro({
+        mode: 'once',
+        storageKey: 'arcadya_brand_intro_seen',
+        duration: 7000,
+        onComplete: runArcadyaIntro
+      });
+    } else {
+      runArcadyaIntro();
+    }
+  })();
+
+  /* ===== Service worker for PWA / offline =====
+     Registers only on http(s) — file:// would fail. */
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    });
+  }
+</script>
+</body>
+</html>
