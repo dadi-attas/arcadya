@@ -667,7 +667,19 @@
   $('exitYes').addEventListener('click', () => {
     sessionStorage.removeItem(INTRO_SESSION_KEY);
     try { window.close(); } catch (e) {}
-    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#a79ec9;font-family:sans-serif;letter-spacing:2px">להתראות</div>';
+    // window.close() is blocked for tabs the user opened manually — show a
+    // friendly goodbye with an option to come back so they're not stranded.
+    document.body.innerHTML =
+      '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+      'height:100vh;background:#05010f;font-family:sans-serif;gap:28px">' +
+      '<div style="font-size:32px;font-weight:900;letter-spacing:6px;color:#fff;' +
+      'text-shadow:0 0 12px #ff2d95,0 0 28px #b14bff">ARCADYA</div>' +
+      '<div style="color:#a79ec9;font-size:16px;letter-spacing:3px">להתראות</div>' +
+      '<button onclick="location.href=\'index.html?home=1\'" style="margin-top:14px;' +
+      'background:linear-gradient(180deg,#ff2d95,#b14bff);border:none;color:#fff;' +
+      'padding:14px 28px;border-radius:12px;font-weight:800;font-size:14px;letter-spacing:2px;' +
+      'cursor:pointer;box-shadow:0 6px 20px rgba(255,45,149,0.4)">חזרה ל־ARCADYA</button>' +
+      '</div>';
   });
 
   /* ===== Settings ===== */
