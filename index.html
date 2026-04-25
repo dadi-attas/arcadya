@@ -223,10 +223,11 @@
     scrollbar-width: thin;
   }
   .game-card {
-    aspect-ratio: 1 / 1.1;
+    aspect-ratio: 1 / 1;        /* square — keeps icon+name visually close */
     border-radius: 18px;
     position: relative;
     cursor: pointer;
+    padding: 12px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 10px;
     background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
@@ -242,12 +243,16 @@
     pointer-events: none;
   }
   .game-card .ico {
-    font-size: 42px;
+    font-size: 40px;
+    line-height: 1;
+    height: 46px;
+    display: flex; align-items: center; justify-content: center;
     filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
     z-index: 1;
   }
   .game-card .name {
-    font-size: 14px; font-weight: 800; letter-spacing: 1px;
+    font-size: 13px; font-weight: 800; letter-spacing: 1px;
+    line-height: 1;
     z-index: 1;
     text-transform: uppercase;
   }
@@ -549,6 +554,7 @@
 </div>
 
 <script src="games.js"></script>
+<script src="assets/arcadya-shell.js"></script>
 <script src="assets/logo/brand-intro.js"></script>
 <script>
   /* ===== Session / intro logic =====
@@ -644,8 +650,39 @@
   const ARCADYA_INTRO_DURATION = 3000;
   const ONBOARDING_KEY = 'arcadya_onboarding_done';
   let arcadyaIntroTimer = null;
+
+  /* Classic arcade jingle: coin "ding" → ascending sweep → triumphant chord */
+  function playArcadeJingle(){
+    if (typeof ARCADYA === 'undefined' || !ARCADYA.beep || ARCADYA.isMuted()) return;
+    const b = ARCADYA.beep;
+    // Coin insert "ka-ching"
+    b(880, 0.06, 'square', 0.10);
+    b(1320, 0.06, 'square', 0.10);
+    // Ascending power-up sweep
+    setTimeout(()=>b(440, 0.05, 'square', 0.08),  200);
+    setTimeout(()=>b(660, 0.05, 'square', 0.08),  280);
+    setTimeout(()=>b(880, 0.05, 'square', 0.08),  360);
+    setTimeout(()=>b(1100, 0.05, 'square', 0.08), 440);
+    setTimeout(()=>b(1320, 0.05, 'square', 0.08), 520);
+    // Triumphant C-major chord (C5+E5+G5)
+    setTimeout(()=>{
+      b(523, 0.18, 'square', 0.07);
+      b(659, 0.18, 'square', 0.07);
+      b(784, 0.18, 'square', 0.07);
+    }, 720);
+    // Final sparkle — high G6
+    setTimeout(()=>b(1568, 0.30, 'triangle', 0.10), 1000);
+    // Closing chord
+    setTimeout(()=>{
+      b(1046, 0.28, 'square', 0.06);
+      b(1318, 0.28, 'square', 0.06);
+      b(1568, 0.28, 'square', 0.06);
+    }, 1350);
+  }
+
   function showArcadyaIntro(){
     show('intro');
+    playArcadeJingle();
     arcadyaIntroTimer = setTimeout(finishArcadyaIntro, ARCADYA_INTRO_DURATION);
   }
   function finishArcadyaIntro(){
