@@ -223,13 +223,13 @@
     scrollbar-width: thin;
   }
   .game-card {
-    aspect-ratio: 1 / 1;        /* square — keeps icon+name visually close */
     border-radius: 18px;
     position: relative;
     cursor: pointer;
-    padding: 12px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 10px;
+    padding: 16px 8px;
+    min-height: 130px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
     background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
     border: 1px solid rgba(255,255,255,0.08);
     overflow: hidden;
@@ -243,18 +243,19 @@
     pointer-events: none;
   }
   .game-card .ico {
-    font-size: 40px;
+    font-size: 36px;
     line-height: 1;
-    height: 46px;
-    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px;
     filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
     z-index: 1;
   }
   .game-card .name {
-    font-size: 13px; font-weight: 800; letter-spacing: 1px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
     line-height: 1;
-    z-index: 1;
     text-transform: uppercase;
+    z-index: 1;
   }
   .game-card.soon { opacity: 0.45; cursor: not-allowed; }
   .game-card.soon::after {
@@ -364,6 +365,57 @@
     #rotatePrompt { display: flex; }
   }
 
+  /* ===== Tap to start (between brand intro and ARCADYA intro) =====
+     Required so the browser allows audio to play (autoplay restrictions
+     require a user gesture before AudioContext can start). */
+  #tapStart {
+    align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 50%, #1a0550 0%, #05010f 80%);
+    cursor: pointer;
+  }
+  .tap-card { text-align: center; padding: 24px; }
+  .tap-logo {
+    font-size: clamp(28px, 8vw, 38px);
+    font-weight: 900; letter-spacing: 6px;
+    color: #fff;
+    text-shadow:
+      0 0 6px #fff,
+      0 0 14px var(--neon-pink),
+      0 0 28px var(--neon-purple);
+    margin-bottom: 8px;
+  }
+  .tap-bars {
+    display: flex; gap: 4px; justify-content: center; margin-bottom: 40px;
+  }
+  .tap-bars span {
+    width: 6px; height: 14px; border-radius: 1px;
+    background: var(--neon-pink);
+    box-shadow: 0 0 6px var(--neon-pink);
+  }
+  .tap-bars span:nth-child(2) { background: var(--neon-purple); box-shadow: 0 0 6px var(--neon-purple); }
+  .tap-bars span:nth-child(3) { background: var(--neon-cyan);   box-shadow: 0 0 6px var(--neon-cyan); }
+  .tap-bars span:nth-child(4) { background: var(--neon-yellow); box-shadow: 0 0 6px var(--neon-yellow); }
+  .tap-bars span:nth-child(5) { background: var(--neon-green);  box-shadow: 0 0 6px var(--neon-green); }
+  .tap-press {
+    font-size: clamp(20px, 6vw, 28px);
+    font-weight: 900; letter-spacing: 4px;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 12px var(--neon-yellow);
+    animation: tapBlink 1s infinite;
+  }
+  .tap-hand {
+    font-size: 44px; margin-top: 24px;
+    animation: tapBounce 1.4s infinite;
+  }
+  @keyframes tapBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+  @keyframes tapBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(10px); }
+  }
+
   /* ===== Onboarding ===== */
   #onboarding {
     align-items: center; justify-content: center;
@@ -450,6 +502,19 @@
 
 <div id="app">
   <div id="stage">
+
+    <!-- Tap to start (after brand intro, before ARCADYA intro). Required to
+         enable audio — browsers block autoplay until first user gesture. -->
+    <section id="tapStart" class="screen">
+      <div class="tap-card">
+        <div class="tap-logo">ARCADYA</div>
+        <div class="tap-bars">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="tap-press">הקש להתחלה</div>
+        <div class="tap-hand">👆</div>
+      </div>
+    </section>
 
     <!-- Onboarding (first time only) -->
     <section id="onboarding" class="screen">
@@ -701,10 +766,25 @@
   });
 
   /* ===== Boot =====
-     Sequence: brand intro (TTASiA) → ARCADYA intro → main menu.
-     When returning from a game, ?home=1 is appended to the URL — we skip
-     both intros and jump straight to the menu. Otherwise the intros play
-     once per session. */
+     Sequence: brand intro (TTASiA) → tap-to-start → ARCADYA intro → menu.
+     The tap screen captures a user gesture so audio is allowed to play
+     during the ARCADYA intro. */
+  function showTapStart(){
+    show('tapStart');
+    const tapEl = $('tapStart');
+    const onTap = () => {
+      tapEl.removeEventListener('click', onTap);
+      tapEl.removeEventListener('touchstart', onTap);
+      runArcadyaIntro();
+    };
+    tapEl.addEventListener('click', onTap);
+    tapEl.addEventListener('touchstart', onTap);
+  }
+  function runArcadyaIntro(){
+    sessionStorage.setItem(INTRO_SESSION_KEY, 'true');
+    showArcadyaIntro();
+  }
+
   (function boot(){
     const backFromGame = new URLSearchParams(location.search).has('home');
     const sessionShown = sessionStorage.getItem(INTRO_SESSION_KEY);
@@ -716,21 +796,17 @@
       return;
     }
 
-    const runArcadyaIntro = () => {
-      sessionStorage.setItem(INTRO_SESSION_KEY, 'true');
-      showArcadyaIntro();
-    };
-    // fresh session: ensure brand intro plays once
+    // fresh session: brand intro → tap to start → ARCADYA intro → onboarding/menu
     localStorage.removeItem('arcadya_brand_intro_seen');
     if (typeof initBrandIntro === 'function') {
       initBrandIntro({
         mode: 'once',
         storageKey: 'arcadya_brand_intro_seen',
         duration: 7000,
-        onComplete: runArcadyaIntro
+        onComplete: showTapStart
       });
     } else {
-      runArcadyaIntro();
+      showTapStart();
     }
   })();
 
